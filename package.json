@@ -11,7 +11,7 @@
   },
   "scripts": {
     "start": "parcel index.html",
-    "build": "parcel build --experimental-scope-hoisting --public-url . index.html",
+    "build": "parcel build --public-url . index.html",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "spremel",
