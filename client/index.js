@@ -9,9 +9,8 @@ import GPX from 'ol/format/GPX';
 var blur = document.getElementById('blur');
 var radius = document.getElementById('radius');
 
-var serverIp = "35.210.237.237"
 var source = new VectorSource({
-  url: 'http://' + serverIp + '/data/test/constance.gpx',
+  url: 'http://localhost/data/test/constance.gpx',
   format: new GPX()
 });
 
