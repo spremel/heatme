@@ -35,14 +35,14 @@ new Map({
 });
 
 var blurHandler = function() {
-  heatmapLayer.setBlur(parseInt(blur.value, 10));
+  heatmap.setBlur(parseInt(blur.value, 10));
 };
 
 blur.addEventListener('input', blurHandler);
 blur.addEventListener('change', blurHandler);
 
 var radiusHandler = function() {
-  heatmapLayer.setRadius(parseInt(radius.value, 10));
+  heatmap.setRadius(parseInt(radius.value, 10));
 };
 radius.addEventListener('input', radiusHandler);
 radius.addEventListener('change', radiusHandler);
