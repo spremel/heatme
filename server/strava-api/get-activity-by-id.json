@@ -1,0 +1,733 @@
+{
+  "resource_state": 3,
+  "athlete": {
+    "id": 47736220,
+    "resource_state": 1
+  },
+  "name": "Afternoon Ride",
+  "distance": 10068,
+  "moving_time": 2370,
+  "elapsed_time": 3347,
+  "total_elevation_gain": 41,
+  "type": "Ride",
+  "workout_type": null,
+  "id": 3607848392,
+  "external_id": "garmin_push_5083013267",
+  "upload_id": 3851562123,
+  "start_date": "2020-06-13T12:36:06Z",
+  "start_date_local": "2020-06-13T14:36:06Z",
+  "timezone": "(GMT+01:00) Europe/Paris",
+  "utc_offset": 7200,
+  "start_latlng": [
+    48.81,
+    2.16
+  ],
+  "end_latlng": [
+    48.81,
+    2.1
+  ],
+  "location_city": null,
+  "location_state": null,
+  "location_country": "France",
+  "start_latitude": 48.81,
+  "start_longitude": 2.16,
+  "achievement_count": 0,
+  "kudos_count": 2,
+  "comment_count": 0,
+  "athlete_count": 2,
+  "photo_count": 0,
+  "map": {
+    "id": "a3607848392",
+    "polyline": "cg{hH{qdLFfCElADZ?j@G|AGP@Rl@xDANF`@Tj@`AnADZE^]~@uErN_BrEUf@]fAw@zBK~@a@pBuCdKYt@[lAWn@?bAm@lPWbJgA~^i@bKWbJMlCMpE@RO|Ba@`PIhBUbBDfAAr@a@`KAxC[rGCzAD|@CBAEmU|uBJDTDRLz@ZlBhAx@\\p@^bBfARh@BNETQNALJT\\b@?LO`@QdAc@dAAv@Ix@e@bA[t@Ml@o@nBQlB]zBMxAQt@MjB]b@{@~AK@OECBm@t@]h@Up@Md@k@zCQlAOl@GLQdAOnA?LHf@Kr@Az@PjAHz@Nx@Zx@El@g@`Ek@rDcAp@[ZWb@Ud@ETKhBBvALz@Pt@f@bAZXF?FHVLt@DVA^K\\Qd@]n@yARmAByAGcAMu@ESCk@bBaJFKz@KRGRONOj@}BFMJEP@BCjAaIb@}BL_Ah@aCDe@Kc@Q[KYIuAIgBF}@NeA?]j@_Dj@mD`@kBZ}Bn@yDZ{AHs@JUF?TFNATgADMTI\\?bA`@J@t@\\b@LlAx@|@`@VTl@X|@p@PAPF`Aj@z@p@j@Hv@d@f@TrBhA|@VPNH@t@Z\\GXAXHb@IVm@Ts@L{ACk@Se@cAkAaAu@i@[cAu@y@a@cBg@k@SoA}@_B{@aDwAmBkAc@S}@g@SEYQOc@Cs@Hq@EUSSGS@q@n@mFLw@Da@H_@Pa@Rw@Fc@b@}BViBVqALqAPk@PeA~A{CT}@FiC?c@CO]sAWg@q@a@G@YIk@Ca@NIDc@f@Qh@i@z@K`@C^DlCAr@Iv@m@~B_@|By@vD{@xFg@xBY`DGZE?[GE@ON_@nAc@HuAs@oAa@eB_AII]MoA_AeA_@_Ak@[ME?QJu@|@Yd@Md@EZ@XJpAD~@FTNJVJbAx@^R|@\\fAr@VRH@j@Xh@LRNHBv@h@h@LBBTBHGLYLG",
+    "resource_state": 3,
+    "summary_polyline": "cg{hH{qdLFfCElADZ?j@G|AGP@Rl@xDANF`@Tj@`AnADZE^]~@uErN_BrEUf@]fAw@zBK~@a@pBuCdKYt@[lAWn@?bAm@lPWbJgA~^i@bKWbJMlCMpE@RO|Ba@`PIhBUbBDfAAr@a@`KAxC[rGCzAD|@CBAEmU|uBJDTDRLz@ZlBhAx@\\p@^bBfARh@BNETQNALJT\\b@?LO`@QdAc@dAAv@Ix@e@bA[t@Ml@o@nBQlB]zBMxAQt@MjB]b@{@~AK@OECBm@t@]h@Up@Md@k@zCQlAOl@GLQdAOnA?LHf@Kr@Az@PjAHz@Nx@Zx@El@g@`Ek@rDcAp@[ZWb@Ud@ETKhBBvALz@Pt@f@bAZXF?FHVLt@DVA^K\\Qd@]n@yARmAByAGcAMu@ESCk@bBaJFKz@KRGRONOj@}BFMJEP@BCjAaIb@}BL_Ah@aCDe@Kc@Q[KYIuAIgBF}@NeA?]j@_Dj@mD`@kBZ}Bn@yDZ{AHs@JUF?TFNATgADMTI\\?bA`@J@t@\\b@LlAx@|@`@VTl@X|@p@PAPF`Aj@z@p@j@Hv@d@f@TrBhA|@VPNH@t@Z\\GXAXHb@IVm@Ts@L{ACk@Se@cAkAaAu@i@[cAu@y@a@cBg@k@SoA}@_B{@aDwAmBkAc@S}@g@SEYQOc@Cs@Hq@EUSSGS@q@n@mFLw@Da@H_@Pa@Rw@Fc@b@}BViBVqALqAPk@PeA~A{CT}@FiC?c@CO]sAWg@q@a@G@YIk@Ca@NIDc@f@Qh@i@z@K`@C^DlCAr@Iv@m@~B_@|By@vD{@xFg@xBY`DGZE?[GE@ON_@nAc@HuAs@oAa@eB_AII]MoA_AeA_@_Ak@[ME?QJu@|@Yd@Md@EZ@XJpAD~@FTNJVJbAx@^R|@\\fAr@VRH@j@Xh@LRNHBv@h@h@LBBTBHGLYLG"
+  },
+  "trainer": false,
+  "commute": false,
+  "manual": false,
+  "private": false,
+  "visibility": "everyone",
+  "flagged": false,
+  "gear_id": "b6434142",
+  "from_accepted_tag": false,
+  "upload_id_str": "3851562123",
+  "average_speed": 4.248,
+  "max_speed": 9.6,
+  "average_cadence": 48.6,
+  "average_temp": 24,
+  "average_watts": 51.5,
+  "kilojoules": 122,
+  "device_watts": false,
+  "has_heartrate": true,
+  "average_heartrate": 96.2,
+  "max_heartrate": 152,
+  "heartrate_opt_out": false,
+  "display_hide_heartrate_option": true,
+  "elev_high": 100.8,
+  "elev_low": 76.2,
+  "pr_count": 0,
+  "total_photo_count": 0,
+  "has_kudoed": false,
+  "description": null,
+  "calories": 151,
+  "perceived_exertion": null,
+  "prefer_perceived_exertion": null,
+  "segment_efforts": [
+    {
+      "id": 2706882665109088000,
+      "resource_state": 2,
+      "name": "Reine au roi",
+      "activity": {
+        "id": 3607848392,
+        "resource_state": 1
+      },
+      "athlete": {
+        "id": 47736220,
+        "resource_state": 1
+      },
+      "elapsed_time": 186,
+      "moving_time": 186,
+      "start_date": "2020-06-13T12:40:00Z",
+      "start_date_local": "2020-06-13T14:40:00Z",
+      "distance": 1401.5,
+      "start_index": 88,
+      "end_index": 145,
+      "average_cadence": 68.1,
+      "device_watts": false,
+      "average_watts": 87.5,
+      "average_heartrate": 113.2,
+      "max_heartrate": 125,
+      "segment": {
+        "id": 15813220,
+        "resource_state": 2,
+        "name": "Reine au roi",
+        "activity_type": "Ride",
+        "distance": 1401.5,
+        "average_grade": -0.6,
+        "maximum_grade": 0.6,
+        "elevation_high": 156.4,
+        "elevation_low": 147,
+        "start_latlng": [
+          48.808008,
+          2.14496
+        ],
+        "end_latlng": [
+          48.809522,
+          2.125985
+        ],
+        "start_latitude": 48.808008,
+        "start_longitude": 2.14496,
+        "end_latitude": 48.809522,
+        "end_longitude": 2.125985,
+        "climb_category": 0,
+        "city": "Versailles",
+        "state": "Île-de-France",
+        "country": "France",
+        "private": false,
+        "hazardous": false,
+        "starred": false
+      },
+      "pr_rank": null,
+      "achievements": [],
+      "hidden": false
+    },
+    {
+      "id": 2706882665109088000,
+      "resource_state": 2,
+      "name": "Bvd de la Reine 1ere partie",
+      "activity": {
+        "id": 3607848392,
+        "resource_state": 1
+      },
+      "athlete": {
+        "id": 47736220,
+        "resource_state": 1
+      },
+      "elapsed_time": 98,
+      "moving_time": 98,
+      "start_date": "2020-06-13T12:40:03Z",
+      "start_date_local": "2020-06-13T14:40:03Z",
+      "distance": 812.2,
+      "start_index": 89,
+      "end_index": 122,
+      "average_cadence": 73.6,
+      "device_watts": false,
+      "average_watts": 102.3,
+      "average_heartrate": 116,
+      "max_heartrate": 125,
+      "segment": {
+        "id": 9166756,
+        "resource_state": 2,
+        "name": "Bvd de la Reine 1ere partie",
+        "activity_type": "Ride",
+        "distance": 812.2,
+        "average_grade": -0.7,
+        "maximum_grade": 0.7,
+        "elevation_high": 133.1,
+        "elevation_low": 125.8,
+        "start_latlng": [
+          48.808126,
+          2.144783
+        ],
+        "end_latlng": [
+          48.808932,
+          2.133796
+        ],
+        "start_latitude": 48.808126,
+        "start_longitude": 2.144783,
+        "end_latitude": 48.808932,
+        "end_longitude": 2.133796,
+        "climb_category": 0,
+        "city": "Versailles",
+        "state": "Île-de-France",
+        "country": "France",
+        "private": false,
+        "hazardous": false,
+        "starred": false
+      },
+      "pr_rank": null,
+      "achievements": [],
+      "hidden": false
+    },
+    {
+      "id": 2706882665109088000,
+      "resource_state": 2,
+      "name": "Faux plat montant",
+      "activity": {
+        "id": 3607848392,
+        "resource_state": 1
+      },
+      "athlete": {
+        "id": 47736220,
+        "resource_state": 1
+      },
+      "elapsed_time": 46,
+      "moving_time": 46,
+      "start_date": "2020-06-13T12:59:18Z",
+      "start_date_local": "2020-06-13T14:59:18Z",
+      "distance": 171,
+      "start_index": 241,
+      "end_index": 253,
+      "average_cadence": 52.5,
+      "device_watts": false,
+      "average_watts": 58.5,
+      "average_heartrate": 90.3,
+      "max_heartrate": 95,
+      "segment": {
+        "id": 7160927,
+        "resource_state": 2,
+        "name": "Faux plat montant",
+        "activity_type": "Ride",
+        "distance": 171,
+        "average_grade": -0.3,
+        "maximum_grade": 4,
+        "elevation_high": 113.7,
+        "elevation_low": 111.3,
+        "start_latlng": [
+          48.812483,
+          2.093528
+        ],
+        "end_latlng": [
+          48.813565,
+          2.092221
+        ],
+        "start_latitude": 48.812483,
+        "start_longitude": 2.093528,
+        "end_latitude": 48.813565,
+        "end_longitude": 2.092221,
+        "climb_category": 0,
+        "city": "Versailles",
+        "state": "IDF",
+        "country": "France",
+        "private": false,
+        "hazardous": false,
+        "starred": false
+      },
+      "pr_rank": null,
+      "achievements": [],
+      "hidden": false
+    },
+    {
+      "id": 2706882665109088000,
+      "resource_state": 2,
+      "name": "Grand Canal chicane run",
+      "activity": {
+        "id": 3607848392,
+        "resource_state": 1
+      },
+      "athlete": {
+        "id": 47736220,
+        "resource_state": 1
+      },
+      "elapsed_time": 117,
+      "moving_time": 117,
+      "start_date": "2020-06-13T13:09:31Z",
+      "start_date_local": "2020-06-13T15:09:31Z",
+      "distance": 501.1,
+      "start_index": 382,
+      "end_index": 414,
+      "average_cadence": 39.8,
+      "device_watts": false,
+      "average_watts": 29.9,
+      "average_heartrate": 81.2,
+      "max_heartrate": 89,
+      "segment": {
+        "id": 16113039,
+        "resource_state": 2,
+        "name": "Grand Canal chicane run",
+        "activity_type": "Ride",
+        "distance": 501.1,
+        "average_grade": -1.6,
+        "maximum_grade": -0.3,
+        "elevation_high": 122.7,
+        "elevation_low": 114.7,
+        "start_latlng": [
+          48.811133,
+          2.09124
+        ],
+        "end_latlng": [
+          48.810328,
+          2.097088
+        ],
+        "start_latitude": 48.811133,
+        "start_longitude": 2.09124,
+        "end_latitude": 48.810328,
+        "end_longitude": 2.097088,
+        "climb_category": 0,
+        "city": null,
+        "state": null,
+        "country": null,
+        "private": false,
+        "hazardous": false,
+        "starred": false
+      },
+      "pr_rank": null,
+      "achievements": [],
+      "hidden": false
+    },
+    {
+      "id": 2706882665109088000,
+      "resource_state": 2,
+      "name": "Versailles, France Canal Little climb",
+      "activity": {
+        "id": 3607848392,
+        "resource_state": 1
+      },
+      "athlete": {
+        "id": 47736220,
+        "resource_state": 1
+      },
+      "elapsed_time": 218,
+      "moving_time": 218,
+      "start_date": "2020-06-13T13:13:21Z",
+      "start_date_local": "2020-06-13T15:13:21Z",
+      "distance": 730.9,
+      "start_index": 454,
+      "end_index": 518,
+      "average_cadence": 39.7,
+      "device_watts": false,
+      "average_watts": 44.8,
+      "average_heartrate": 94.7,
+      "max_heartrate": 104,
+      "segment": {
+        "id": 7078386,
+        "resource_state": 2,
+        "name": "Versailles, France Canal Little climb",
+        "activity_type": "Ride",
+        "distance": 730.9,
+        "average_grade": 0.3,
+        "maximum_grade": 12.4,
+        "elevation_high": 117.8,
+        "elevation_low": 106.2,
+        "start_latlng": [
+          48.80765,
+          2.097466
+        ],
+        "end_latlng": [
+          48.805114,
+          2.098033
+        ],
+        "start_latitude": 48.80765,
+        "start_longitude": 2.097466,
+        "end_latitude": 48.805114,
+        "end_longitude": 2.098033,
+        "climb_category": 0,
+        "city": "Versailles",
+        "state": "IDF",
+        "country": "France",
+        "private": false,
+        "hazardous": false,
+        "starred": false
+      },
+      "pr_rank": null,
+      "achievements": [],
+      "hidden": false
+    },
+    {
+      "id": 2706882665109088000,
+      "resource_state": 2,
+      "name": "Mini descente bosse",
+      "activity": {
+        "id": 3607848392,
+        "resource_state": 1
+      },
+      "athlete": {
+        "id": 47736220,
+        "resource_state": 1
+      },
+      "elapsed_time": 122,
+      "moving_time": 122,
+      "start_date": "2020-06-13T13:16:31Z",
+      "start_date_local": "2020-06-13T15:16:31Z",
+      "distance": 515.6,
+      "start_index": 509,
+      "end_index": 546,
+      "average_cadence": 39.5,
+      "device_watts": false,
+      "average_watts": 21.5,
+      "average_heartrate": 89.6,
+      "max_heartrate": 102,
+      "segment": {
+        "id": 7159462,
+        "resource_state": 2,
+        "name": "Mini descente bosse",
+        "activity_type": "Ride",
+        "distance": 515.6,
+        "average_grade": -1.9,
+        "maximum_grade": 1.9,
+        "elevation_high": 122.8,
+        "elevation_low": 110.6,
+        "start_latlng": [
+          48.804111,
+          2.09726
+        ],
+        "end_latlng": [
+          48.808379,
+          2.099954
+        ],
+        "start_latitude": 48.804111,
+        "start_longitude": 2.09726,
+        "end_latitude": 48.808379,
+        "end_longitude": 2.099954,
+        "climb_category": 0,
+        "city": "Versailles",
+        "state": "IDF",
+        "country": "France",
+        "private": false,
+        "hazardous": false,
+        "starred": false
+      },
+      "pr_rank": null,
+      "achievements": [],
+      "hidden": false
+    }
+  ],
+  "splits_metric": [
+    {
+      "distance": 1020.4,
+      "elapsed_time": 162,
+      "elevation_difference": 9.6,
+      "moving_time": 162,
+      "split": 1,
+      "average_speed": 6.3,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 120.69135802469135,
+      "pace_zone": 0
+    },
+    {
+      "distance": 982.5,
+      "elapsed_time": 173,
+      "elevation_difference": -6,
+      "moving_time": 127,
+      "split": 2,
+      "average_speed": 7.74,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 117.59055118110236,
+      "pace_zone": 0
+    },
+    {
+      "distance": 999,
+      "elapsed_time": 200,
+      "elevation_difference": -6.6,
+      "moving_time": 163,
+      "split": 3,
+      "average_speed": 6.13,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 110.95061728395062,
+      "pace_zone": 0
+    },
+    {
+      "distance": 1023.3,
+      "elapsed_time": 920,
+      "elevation_difference": -4.4,
+      "moving_time": 912,
+      "split": 4,
+      "average_speed": 1.12,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 99.1484375,
+      "pace_zone": 0
+    },
+    {
+      "distance": 975,
+      "elapsed_time": 362,
+      "elevation_difference": 3.4,
+      "moving_time": 269,
+      "split": 5,
+      "average_speed": 3.62,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 88.76119402985074,
+      "pace_zone": 0
+    },
+    {
+      "distance": 1025.6,
+      "elapsed_time": 291,
+      "elevation_difference": -5.4,
+      "moving_time": 275,
+      "split": 6,
+      "average_speed": 3.73,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 86.82116788321167,
+      "pace_zone": 0
+    },
+    {
+      "distance": 975,
+      "elapsed_time": 289,
+      "elevation_difference": 9,
+      "moving_time": 289,
+      "split": 7,
+      "average_speed": 3.37,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 91.11072664359861,
+      "pace_zone": 0
+    },
+    {
+      "distance": 1012.1,
+      "elapsed_time": 259,
+      "elevation_difference": -8.6,
+      "moving_time": 259,
+      "split": 8,
+      "average_speed": 3.91,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 88.55212355212355,
+      "pace_zone": 0
+    },
+    {
+      "distance": 993.2,
+      "elapsed_time": 418,
+      "elevation_difference": -2.8,
+      "moving_time": 296,
+      "split": 9,
+      "average_speed": 3.36,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 84.24662162162163,
+      "pace_zone": 0
+    },
+    {
+      "distance": 998.2,
+      "elapsed_time": 236,
+      "elevation_difference": 1,
+      "moving_time": 236,
+      "split": 10,
+      "average_speed": 4.23,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 101.88135593220339,
+      "pace_zone": 0
+    },
+    {
+      "distance": 67.7,
+      "elapsed_time": 37,
+      "elevation_difference": 0,
+      "moving_time": 35,
+      "split": 11,
+      "average_speed": 1.93,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 105.1470588235294,
+      "pace_zone": 0
+    }
+  ],
+  "splits_standard": [
+    {
+      "distance": 1652.4,
+      "elapsed_time": 288,
+      "elevation_difference": 7,
+      "moving_time": 242,
+      "split": 1,
+      "average_speed": 6.83,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 120.12809917355372,
+      "pace_zone": 0
+    },
+    {
+      "distance": 1568.4,
+      "elapsed_time": 962,
+      "elevation_difference": -17,
+      "moving_time": 917,
+      "split": 2,
+      "average_speed": 1.71,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 113.62307692307692,
+      "pace_zone": 0
+    },
+    {
+      "distance": 1608.5,
+      "elapsed_time": 518,
+      "elevation_difference": 6.4,
+      "moving_time": 425,
+      "split": 3,
+      "average_speed": 3.78,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 91.56839622641509,
+      "pace_zone": 0
+    },
+    {
+      "distance": 1609.8,
+      "elapsed_time": 451,
+      "elevation_difference": -6.2,
+      "moving_time": 435,
+      "split": 4,
+      "average_speed": 3.7,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 87.14285714285714,
+      "pace_zone": 0
+    },
+    {
+      "distance": 1611.2,
+      "elapsed_time": 448,
+      "elevation_difference": 1.2,
+      "moving_time": 448,
+      "split": 5,
+      "average_speed": 3.6,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 89.78125,
+      "pace_zone": 0
+    },
+    {
+      "distance": 1613.8,
+      "elapsed_time": 576,
+      "elevation_difference": -3.6,
+      "moving_time": 454,
+      "split": 6,
+      "average_speed": 3.55,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 88.55506607929516,
+      "pace_zone": 0
+    },
+    {
+      "distance": 407.9,
+      "elapsed_time": 104,
+      "elevation_difference": 1.4,
+      "moving_time": 102,
+      "split": 7,
+      "average_speed": 4,
+      "average_grade_adjusted_speed": null,
+      "average_heartrate": 114.42574257425743,
+      "pace_zone": 0
+    }
+  ],
+  "laps": [
+    {
+      "id": 11924579540,
+      "resource_state": 2,
+      "name": "Lap 1",
+      "activity": {
+        "id": 3607848392,
+        "resource_state": 1
+      },
+      "athlete": {
+        "id": 47736220,
+        "resource_state": 1
+      },
+      "elapsed_time": 1817,
+      "moving_time": 980,
+      "start_date": "2020-06-13T12:36:06Z",
+      "start_date_local": "2020-06-13T14:36:06Z",
+      "distance": 5000,
+      "start_index": 0,
+      "end_index": 331,
+      "total_elevation_gain": 27,
+      "average_speed": 5.1,
+      "max_speed": 9.6,
+      "average_cadence": 59.1,
+      "device_watts": false,
+      "average_watts": 71.4,
+      "average_heartrate": 104.2,
+      "max_heartrate": 152,
+      "lap_index": 1,
+      "split": 1
+    },
+    {
+      "id": 11924579546,
+      "resource_state": 2,
+      "name": "Lap 2",
+      "activity": {
+        "id": 3607848392,
+        "resource_state": 1
+      },
+      "athlete": {
+        "id": 47736220,
+        "resource_state": 1
+      },
+      "elapsed_time": 1492,
+      "moving_time": 1354,
+      "start_date": "2020-06-13T13:06:25Z",
+      "start_date_local": "2020-06-13T15:06:25Z",
+      "distance": 5000,
+      "start_index": 332,
+      "end_index": 762,
+      "total_elevation_gain": 13,
+      "average_speed": 3.69,
+      "max_speed": 5.6,
+      "average_cadence": 41.1,
+      "device_watts": false,
+      "average_watts": 37.3,
+      "average_heartrate": 90.1,
+      "max_heartrate": 129,
+      "lap_index": 2,
+      "split": 2
+    },
+    {
+      "id": 11924579551,
+      "resource_state": 2,
+      "name": "Lap 3",
+      "activity": {
+        "id": 3607848392,
+        "resource_state": 1
+      },
+      "athlete": {
+        "id": 47736220,
+        "resource_state": 1
+      },
+      "elapsed_time": 37,
+      "moving_time": 35,
+      "start_date": "2020-06-13T13:31:21Z",
+      "start_date_local": "2020-06-13T15:31:21Z",
+      "distance": 71.99,
+      "start_index": 763,
+      "end_index": 775,
+      "total_elevation_gain": 2,
+      "average_speed": 2.06,
+      "max_speed": 4.4,
+      "average_cadence": 15.6,
+      "device_watts": false,
+      "average_watts": 39.6,
+      "average_heartrate": 104.5,
+      "max_heartrate": 109,
+      "lap_index": 3,
+      "split": 3
+    }
+  ],
+  "gear": {
+    "id": "b6434142",
+    "primary": true,
+    "name": "Specialized Tarmac Sport 2018",
+    "resource_state": 2,
+    "distance": 1396133
+  },
+  "photos": {
+    "primary": null,
+    "count": 0
+  },
+  "device_name": "Garmin fēnix 5S",
+  "embed_token": "731d488b796cb311466bde095cfce25a505997f9",
+  "available_zones": []
+}

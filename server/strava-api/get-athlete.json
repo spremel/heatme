@@ -1,0 +1,20 @@
+{
+  "id": 47736220,
+  "username": "sprmel",
+  "resource_state": 2,
+  "firstname": "Sylvain",
+  "lastname": "Prémel",
+  "city": "Versailles",
+  "state": "France",
+  "country": "France",
+  "sex": "M",
+  "premium": false,
+  "summit": false,
+  "created_at": "2019-10-26T13:12:28Z",
+  "updated_at": "2019-12-30T13:59:13Z",
+  "badge_type_id": 0,
+  "profile_medium": "https://dgalywyr863hv.cloudfront.net/pictures/athletes/47736220/13078195/1/medium.jpg",
+  "profile": "https://dgalywyr863hv.cloudfront.net/pictures/athletes/47736220/13078195/1/large.jpg",
+  "friend": null,
+  "follower": null
+}
