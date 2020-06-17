@@ -10,7 +10,36 @@ const authServer = 'http://localhost:8090'
 // const stravaServer = 'https://www.strava.com'
 const stravaServer = 'http://localhost:8091'
 
+const databaseName = 'heatme'
+
 var context = {initDb: false, athletes: {}}
+
+function initializeDatabase() {
+    MongoClient.connect(dbConnectionString, function(err, client) {
+        const db = client.db(databaseName)
+
+        const athletes = db.collection('athletes')
+        athletes.createIndex( {'athlete.id': 1}, {unique: true} )
+        athletes.createIndex( {'lastActivityAt': 1} )
+        athletes.createIndex( {'updatedAt': 1} )
+        athletes.createIndex( {'startDate': -1} )
+        athletes.createIndex( {'type': 1} )
+        athletes.createIndex( {'bounds.latMin': 1} )
+        athletes.createIndex( {'bounds.latMax': 1} )
+        athletes.createIndex( {'bounds.lngMin': 1} )
+        athletes.createIndex( {'bounds.lngMax': 1} )
+
+        const activities = db.collection('activities')
+        activities.createIndex( {'id': 1}, {unique: true} )
+        activities.createIndex( {'athlete.id': 1})
+        activities.createIndex( {'hasStream': 1} )
+
+        const streams = db.collection('streams')
+        streams.createIndex( {'id': 1}, {unique: true} )
+        streams.createIndex( {'athleteId': 1} )
+        client.close()
+    })
+}
 
 function getAthleteActivityContext(athlete, activity) {
     c = getAthleteContext(athlete)
@@ -56,25 +85,6 @@ function storeAthlete(data, res) {
     })
 }
 
-function issueAuthorizationRefreshRequest(token, refresh, res) {
-    var body = querystring.stringify({
-        'client_id': clientId.toString(),
-        'client_secret': clientSecret,
-        'refresh_token': token,
-        'grant_type': 'refresh_token',
-    })
-
-    axios.post(authServer + '/oauth/token', body, { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
-        .then(function (response) {
-            console.log(response.data);
-            storeAthlete(response.data, res)
-            return true
-        })
-        .catch(function (error) {
-            return replyError(`Request to ${authServer}/oauth/token failed: ` + error, 400, res)
-        })
-}
-
 function refreshAuthorization(athlete) {
     var c = getAthleteContext(athlete)
 
@@ -88,16 +98,27 @@ function refreshAuthorization(athlete) {
         console.warn(`API replied with 401 but the access token for athlete $is still valid for ${remaining} seconds`)
     }
     
-    if (!issueAuthorizationRequest(athlete.refresh_token, true, null)) {
-        console.error(`Failed to refresh authorization for athlete ${athlete.athlete.id}`)
-    }
+    axios.post(authServer + '/oauth/token', querystring.stringify({
+        'client_id': clientId.toString(),
+        'client_secret': clientSecret,
+        'refresh_token': athlete.refresh_token,
+        'grant_type': 'refresh_token',
+    }), { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
+        .then(function (response) {
+            console.log(response.data);
+            storeAthlete(response.data, res)
+            return true
+        })
+        .catch(function (error) {
+            return replyError(`Failed to refresh authorization for athlete ${athlete.athlete.id}: request to ${authServer}/oauth/token failed: ` + error, 400, res)
+        })
 }
 
 function authorizationHeader(athlete) {
     return {'Authorization': `${athlete.token_type} ${athlete.access_token}`}
 }
 
-function aggregateTimeSeries(d) {
+function mergeTimeSeries(d) {
     var trace = []
     for (var i = 0; i < d[0].data.length; i++) {
         var point = {}
@@ -111,33 +132,6 @@ function aggregateTimeSeries(d) {
 
 function now() {
     return parseInt(Date.now() / 1000)
-}
-
-function initializeDatabase() {
-    MongoClient.connect(dbConnectionString, function(err, client) {
-        const db = client.db('heatme')
-
-        const athletes = db.collection('athletes')
-        athletes.createIndex( {'athlete.id': 1}, {unique: true} )
-        athletes.createIndex( {'lastActivityAt': 1} )
-        athletes.createIndex( {'updatedAt': 1} )
-        athletes.createIndex( {'startDate': -1} )
-        athletes.createIndex( {'type': 1} )
-        athletes.createIndex( {'bounds.latMin': 1} )
-        athletes.createIndex( {'bounds.latMax': 1} )
-        athletes.createIndex( {'bounds.lngMin': 1} )
-        athletes.createIndex( {'bounds.lngMax': 1} )
-
-        const activities = db.collection('activities')
-        activities.createIndex( {'id': 1}, {unique: true} )
-        activities.createIndex( {'athlete.id': 1})
-        activities.createIndex( {'hasStream': 1} )
-
-        const streams = db.collection('streams')
-        streams.createIndex( {'id': 1}, {unique: true} )
-        streams.createIndex( {'athleteId': 1} )
-        client.close()
-    })
 }
 
 function updateAthleteTime(athlete, lastActivityAt, athletesDb, athleteContext) {
@@ -154,7 +148,7 @@ function updateAthletes() {
             return
         }
 
-        const db = client.db('heatme')
+        const db = client.db(databaseName)
         const athletes = db.collection('athletes')
         const activities = db.collection('activities')
 
@@ -216,7 +210,7 @@ function updateAthletes() {
                     })
             })
 
-        // fetch streams for all activities without, and compute bounds from polyline
+        // fetch streams for all activities without
         activities.find({'hasStream': {'$in': [false, null]}}).limit(2).forEach(
             function(activity) {
                 athletes.find({'athlete.id': activity.athlete.id}).forEach(
@@ -238,7 +232,7 @@ function updateAthletes() {
                         axios.get(`${stravaServer}/api/v3/activities/${activity.id}/streams?keys=${timeSeries.join(',')}`, {'headers': authorizationHeader(athlete)})
                             .then(function(response) {
                                 const streams = db.collection('streams')
-                                stream = {'id': activity.id, 'athleteId': athlete.athlete.id, 'trace': aggregateTimeSeries(response.data)}
+                                stream = {'id': activity.id, 'athleteId': athlete.athlete.id, 'trace': mergeTimeSeries(response.data)}
                                 streams.insertOne(stream)
                                     .then(function(err, client) {
                                         activities.updateOne({'id': activity.id}, {'$set': {'hasStream': true}})
@@ -263,6 +257,8 @@ function updateAthletes() {
             })
     })
 }
-    
-initializeDatabase()
-setInterval(updateAthletes, 5000)
+
+if (require.main === module) {    
+    initializeDatabase()
+    setInterval(updateAthletes, 5000)
+}

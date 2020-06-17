@@ -5,6 +5,7 @@ const url = require('url')
 const express = require('express')
 const assert = require('assert')
 const db = require('monk')('mongodb://localhost:27017/heatme')
+const cors = require('cors')
 
 // const stravaServer = 'https://www.strava.com'
 const stravaServer = 'http://localhost:8091'
@@ -32,7 +33,7 @@ function storeAthlete(data, res) {
                         if (err) {
                             return replyError(`Failed to save token athlete information: ${err}`, 500, res)
                         } else {
-                            res.writeHead(301, {'Location': 'http://localhost:1234'})
+                            res.writeHead(301, {'Location': 'http://localhost:1234/#/map/${data.athlete.id}'})
                             res.end()
                             return true
                         }
@@ -104,10 +105,10 @@ function sendData(qp, res) {
         query['bounds.latMin'] = {'$gt': parseFloat(qp.latmin)}
     if (qp.latmax)
         query['bounds.latMax'] = {'$lt': parseFloat(qp.latmax)}
-    if (qp.lonmin)
-        query['bounds.lngMin'] = {'$gt': parseFloat(qp.lonmin)}
-    if (qp.lonmax)
-        query['bounds.lngMax'] = {'$lt': parseFloat(qp.lonmax)}
+    if (qp.lngmin)
+        query['bounds.lngMin'] = {'$gt': parseFloat(qp.lngmin)}
+    if (qp.lngmax)
+        query['bounds.lngMax'] = {'$lt': parseFloat(qp.lngmax)}
 
     console.debug(`Querying activities with filter ${JSON.stringify(query, undefined, 2)}`)
 
@@ -164,6 +165,7 @@ function sendData(qp, res) {
 }
 
 var app = express()
+app.use(cors())
 app
     .get('/token_exchange', function(req, res, next) {
         var requestUrl = url.parse(req.url)
