@@ -1,13 +1,9 @@
 <template>
 <b-container fluid>
-  <b-row>
-    <b-col>
-      <MapSettings></MapSettings>
-    </b-col>
-    <b-col cols=10 align-self="end">
-      <div id="map" class="map"></div>
-    </b-col>
-  </b-row>
+  <MapSettings></MapSettings>
+  <div id="map" class="map">
+    <b-button v-b-toggle.sidebar-settings size="sm" class="btn">>></b-button>
+  </div>
 </b-container>
 </template>
 
@@ -15,6 +11,9 @@
 
 import MapSettings from '@/views/MapSettings'
 import 'ol/ol.css'
+
+// import GPXWithId from '@/format/format.js'
+const customFormat = require('@/format/format.js')
 
 var ol = require('ol')
 ol.source = require('ol/source')
@@ -24,6 +23,7 @@ ol.proj = require('ol/proj')
 ol.extent = require('ol/extent')
 ol.loadingstrategy = require('ol/loadingstrategy')
 ol.coordinate = require('ol/coordinate')
+
 const querystring = require('querystring')
 
 export default {
@@ -38,9 +38,13 @@ export default {
     // var serverIp = '35.210.237.237'
     var serverIp = 'localhost:8080'
 
+    var activityTypes = []
+    var dateAfter = null
+    var dateBefore = null
+
     var vectorSource = new ol.source.Vector({
       strategy: ol.loadingstrategy.bbox,
-      url: function (extent, resolution, projection) {
+      url: (extent, resolution, projection) => {
         console.log('Extent: ' + extent)
         console.log('Resolution: ' + resolution)
 
@@ -54,20 +58,34 @@ export default {
         var longitudes = extent4326.map(e => { return e[0] })
         var latitudes = extent4326.map(e => { return e[1] })
 
-        var bounds = {
+        var filters = {
           'latmin': Math.min(...latitudes).toFixed(6),
           'latmax': Math.max(...latitudes).toFixed(6),
           'lngmin': Math.min(...longitudes).toFixed(6),
           'lngmax': Math.max(...longitudes).toFixed(6)
         }
 
-        var url = `http://${serverIp}/data?${querystring.stringify(bounds)}`
+        filters.athletes = [this.athlete].join(',')
+
+        if (activityTypes.length) {
+          filters.types = activityTypes.join(',')
+        }
+
+        if (dateAfter) {
+          filters.after = ~~(dateAfter.getTime() / 1000)
+        }
+
+        if (dateBefore) {
+          filters.before = ~~(dateBefore.getTime() / 1000)
+        }
+
+        var url = `http://${serverIp}/data?${querystring.stringify(filters)}`
         console.log('Url: ' + url)
 
         return url
       },
 
-      format: new ol.format.GPX()
+      format: new customFormat.GPXWithId({'name': 'toto'})
     })
 
     var heatmap = new ol.layer.Heatmap({
@@ -100,12 +118,41 @@ export default {
 
     this.$root.$on('heatmap-blur-changed', value => { heatmap.setBlur(value) })
     this.$root.$on('heatmap-radius-changed', value => { heatmap.setRadius(value) })
+    this.$root.$on('filter-type-changed', value => { activityTypes = value; vectorSource.refresh() })
+    this.$root.$on('filter-date-after-changed', value => { dateAfter = value; vectorSource.refresh() })
+    this.$root.$on('filter-date-before-changed', value => { dateBefore = value; vectorSource.refresh() })
+
+    this.$root.$on('map-source-changed', value => {
+      let source = new ol.source.OSM()
+
+      if (['stamen-toner', 'stamen-terrain'].includes(value)) {
+        source = new ol.source.Stamen({layer: value.slice('stamen-'.length)})
+      } else if (['bing-road'].includes(value)) {
+        source = new ol.source.BingMaps({
+          key: 'Ag6xa_H_HmbKgcJ1yYwO0Qel03XQVdT2cZ38TWLEbnIhOFMORRUwzNhFgaCke7lu',
+          imagerySet: 'RoadOnDemand'
+        })
+      }
+      raster.setSource(source)
+    })
   }
 }
 </script>
 
 <style scoped>
 .map {
-    height: 800px;
+    height: 100%;
+    width: 100%;
+    position:fixed;
+    padding-right: 20px;
+    padding-bottom: 10px;
 }
+.btn {
+    position: absolute;
+    top: 95%;
+    left: 0%;
+    z-index: 1;
+    margin-left: 10px;
+}
+
 </style>
