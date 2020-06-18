@@ -6,6 +6,9 @@ const express = require('express')
 const assert = require('assert')
 const db = require('monk')('mongodb://localhost:27017/heatme')
 const cors = require('cors')
+const polyline = require('google-polyline')
+
+const thisServer = 'http://localhost:8081'
 
 const stravaServer = 'https://www.strava.com'
 //const stravaServer = 'http://localhost:8091'
@@ -33,7 +36,7 @@ function storeAthlete(data, res) {
                     if (err) {
                       return replyError(`Failed to save token athlete information: ${err}`, 500, res)
                     } else {
-                      res.writeHead(301, {'Location': 'http://localhost:1234/#/map/${data.athlete.id}'})
+                      res.writeHead(301, {'Location': `${thisServer}/#/map/${data.athlete.id}`})
                       res.end()
                       return true
                     }
@@ -96,19 +99,19 @@ function sendData(qp, res) {
         return {
           'run': 'Run',
           'ride': 'Ride',
-          'virtualride': 'Virtual Ride',
-          'virtualrun': 'Virtual Run',
+          'virtualride': 'VirtualRide',
+          'virtualrun': 'VirtualRun',
         }[t]
       })
     }
   if (qp.latmin)
-    query['bounds.latMin'] = {'$gt': parseFloat(qp.latmin)}
+    query['bounds.latMax'] = {'$gt': parseFloat(qp.latmin)}
   if (qp.latmax)
-    query['bounds.latMax'] = {'$lt': parseFloat(qp.latmax)}
+    query['bounds.latMin'] = {'$lt': parseFloat(qp.latmax)}
   if (qp.lngmin)
-    query['bounds.lngMin'] = {'$gt': parseFloat(qp.lngmin)}
+    query['bounds.lngMax'] = {'$gt': parseFloat(qp.lngmin)}
   if (qp.lngmax)
-    query['bounds.lngMax'] = {'$lt': parseFloat(qp.lngmax)}
+    query['bounds.lngMin'] = {'$lt': parseFloat(qp.lngmax)}
 
   console.debug(`Querying activities with filter ${JSON.stringify(query, undefined, 2)}`)
 
@@ -129,14 +132,26 @@ function sendData(qp, res) {
     }
   ]).then(function(data) {
 
+    console.log(`Found ${data.length} results`)
     res.write('<?xml version="1.0" encoding="UTF-8"?>\n')
     res.write('<gpx version="1.0" creator="custom" xmlns="http://www.topografix.com/GPX/1/0">\n')
 
     for (var activity of data) {
-      assert(activity.streams.length === 1)
-      for (stream of activity.streams) {
-        for (var point of stream.trace) {
-          res.write(`<wpt lat="${point.latlng[0]}" lon="${point.latlng[1]}"/>\n`)
+      // assert(activity.streams.length === 1)
+      if (activity.streams.length) {
+        for (stream of activity.streams) {
+          for (var point of stream.trace) {
+            res.write(`<wpt lat="${point.latlng[0]}" lon="${point.latlng[1]}"/>\n`)
+          }
+        }
+      } else if (activity.map.summary_polyline) {
+
+        for (var point of polyline.decode(activity.map.summary_polyline)) {
+          res.write(`
+<wpt lat="${point[0]}" lon="${point[1]}">
+  <name>${activity.id}/${point[0]}/${point[1]}</name>
+  <time>${activity.start_date}</time>
+</wpt>`)
         }
       }
     }
@@ -148,20 +163,6 @@ function sendData(qp, res) {
       return replyError(`Failed to load data: ${err}`, 500, res)
     }
   })
-
-  // db.get('activities').find(query).each(function(activity) {
-  //     db.get('streams').find({'id': activity.id}, {'trace.latlng': true})
-  //         .each(function(doc){
-  //             for (var point of doc.trace) {
-  //                 res.write(`<wpt lat="${point.latlng[0]}" lon="${point.latlng[1]}"/>\n`)
-  //             }
-  //         })
-  //         .then(function() {
-  //             res.write('</gpx>')
-  //             res.end()
-  //         })
-  // }).then(function() {
-  // })
 }
 
 var app = express()

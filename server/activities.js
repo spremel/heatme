@@ -7,8 +7,8 @@ const dbConnectionString = 'mongodb://localhost:27017/'
 //const authServer = 'https://www.strava.com'
 const authServer = 'http://localhost:8090'
 
-// const stravaServer = 'https://www.strava.com'
-const stravaServer = 'http://localhost:8091'
+const stravaServer = 'https://www.strava.com'
+// const stravaServer = 'http://localhost:8091'
 
 const databaseName = 'heatme'
 
@@ -134,8 +134,12 @@ function now() {
   return parseInt(Date.now() / 1000)
 }
 
-function updateAthleteTime(athlete, lastActivityAt, athletesDb, athleteContext) {
-  athletesDb.updateOne({'athlete.id': athlete.athlete.id}, {'$set': {'updatedAt': now(), 'lastActivityAt': lastActivityAt}})
+function updateAthleteTime(athlete, lastActivityAt, upToDate, athletesDb, athleteContext) {
+  update = {'lastActivityAt': lastActivityAt}
+  if (upToDate) {
+    update['updatedAt'] = now()
+  }
+  athletesDb.updateOne({'athlete.id': athlete.athlete.id}, {'$set': update})
     .then((client) => { console.debug(`Updated time fields for athlete ${athlete.athlete.id}`) })
     .catch((err) => { console.error(`Failed to update time fields for athlete ${athlete.athlete.id}: ${err}`)})
     .then(() => { athleteContext.fetchingActivities = false })
@@ -165,96 +169,107 @@ function updateAthletes() {
         }
 
         c.fetchingActivities = true
-        var lastActivity = athlete.lastActivityAt || 0
+        var lastActivityAt = athlete.lastActivityAt || 0
+        var sentinel = 20
 
-        console.log(`Fetching activities after ${new Date(1000 * lastActivity)} for athlete ${athlete.athlete.id}`)
+        console.log(`Fetching activities after ${new Date(1000 * lastActivityAt)} for athlete ${athlete.athlete.id}`)
 
-        axios.get(`${stravaServer}/api/v3/athlete/activities?after=${lastActivity}`, {'headers': authorizationHeader(athlete)})
-          .then(function(response) {
-            console.log(`Found ${response.data.length} new activities for athlete ${athlete.athlete.id}`)
+          axios.get(`${stravaServer}/api/v3/athlete/activities?after=${lastActivityAt}&per_page=100`, {'headers': authorizationHeader(athlete)})
+            .then(function(response) {
+              console.log(`Found ${response.data.length} new activities for athlete ${athlete.athlete.id}`)
+              
+              lastActivityAt = response.data.length ? Math.ceil(
+                new Date(response.data[response.data.length - 1].start_date).getTime() / 1000
+              ) : 0
 
-            lastActivityAt = response.data.length ? Math.ceil(new Date(response.data[0].start_date).getTime() / 1000) : 0
-
-            if (!response.data.length) {
-              updateAthleteTime(athlete, lastActivityAt, athletes, c)
-              return
-            }
-            activities.insertMany(response.data.map(a => {
-              var minLat = Infinity, maxLat = 0, minLng = Infinity, maxLng = 0
-              var points = polyline.decode(a.map.summary_polyline)
-              for (var p of points) {
-                minLat = Math.min(p[0], minLat)
-                maxLat = Math.max(p[0], maxLat)
-                minLng = Math.min(p[1], minLng)
-                maxLng = Math.max(p[1], maxLng)
-              }
-              a['startDate'] = new Date(a.start_date);
-              a['bounds'] = {
-                'latMin': minLat,
-                'latMax': maxLat,
-                'lngMin': minLng,
-                'lngMax': maxLng
-              }
-              return a;
-            }))
-              .then((client) => { updateAthleteTime(athlete, lastActivityAt, athletes, c) })
-              .catch((err) => {
-                console.error(`Failed to insert activities of athlete ${athlete.athlete.id}: ${err}`)
-                c.fetchingActivities = false
+              if (!response.data.length) {
+                updateAthleteTime(athlete, lastActivityAt, true, athletes, c)
                 return
-              })
-          })
-          .catch(function(error) {
-            c.fetchingActivities = false
-            console.error(`Failed to GET activities of athlete ${athlete.athlete.id}: ${error}`)
-          })
+              }
+              activities.insertMany(response.data.map(a => {
+                var minLat = Infinity, maxLat = 0, minLng = Infinity, maxLng = 0
+                if (a.map.summary_polyline) {
+                  var points = polyline.decode(a.map.summary_polyline)
+                  for (var p of points) {
+                    minLat = Math.min(p[0], minLat)
+                    maxLat = Math.max(p[0], maxLat)
+                    minLng = Math.min(p[1], minLng)
+                    maxLng = Math.max(p[1], maxLng)
+                  }
+                  a['bounds'] = {
+                    'latMin': minLat,
+                    'latMax': maxLat,
+                    'lngMin': minLng,
+                    'lngMax': maxLng
+                  }
+                } else {
+                  console.debug(`Missing polyline for activities ${a.id} of athlete ${athlete.athlete.id} (${activity.type})`)
+                }
+
+                a['startDate'] = new Date(a.start_date);
+
+                return a;
+              }))
+                .then((client) => { updateAthleteTime(athlete, lastActivityAt, false, athletes, c) })
+                .catch((err) => {
+                  console.error(`Failed to insert activities of athlete ${athlete.athlete.id}: ${err}`)
+                  c.fetchingActivities = false
+                  return
+                })
+            })
+            .catch(function(error) {
+              c.fetchingActivities = false
+              console.error(`Failed to GET activities of athlete ${athlete.athlete.id}: ${error}`)
+            })
       })
 
     // fetch streams for all activities without
-    activities.find({'hasStream': {'$in': [false, null]}}).limit(2).forEach(
-      function(activity) {
-        athletes.find({'athlete.id': activity.athlete.id}).forEach(
-          function(athlete) {
-            var c = getAthleteActivityContext(athlete, activity)
+    if (false) {
+      activities.find({'hasStream': {'$in': [false, null]}}).limit(2).forEach(
+        function(activity) {
+          athletes.find({'athlete.id': activity.athlete.id}).forEach(
+            function(athlete) {
+              var c = getAthleteActivityContext(athlete, activity)
 
-            if (c.fetchingStreams) {
-              console.debug(`Skipping streams fetch for activity ${activity.id} of athlete ${athlete.athlete.id}`)
-              return                
-            }
-            c.fetchingStreams = true
+              if (c.fetchingStreams) {
+                console.debug(`Skipping streams fetch for activity ${activity.id} of athlete ${athlete.athlete.id}`)
+                return                
+              }
+              c.fetchingStreams = true
 
-            console.log(`Fetching stream for activity ${activity.id} for athlete ${athlete.athlete.id}`)
-            timeSeries = [
-              'time', 'distance', 'latlng', 'altitude', 'velocity_smooth',
-              'heartrate', 'cadence', 'watts', 'temp', 'moving', 'grade_smooth'
-            ]
+              console.log(`Fetching stream for activity ${activity.id} for athlete ${athlete.athlete.id}`)
+              timeSeries = [
+                'time', 'distance', 'latlng', 'altitude', 'velocity_smooth',
+                'heartrate', 'cadence', 'watts', 'temp', 'moving', 'grade_smooth'
+              ]
 
-            axios.get(`${stravaServer}/api/v3/activities/${activity.id}/streams?keys=${timeSeries.join(',')}`, {'headers': authorizationHeader(athlete)})
-              .then(function(response) {
-                const streams = db.collection('streams')
-                stream = {'id': activity.id, 'athleteId': athlete.athlete.id, 'trace': mergeTimeSeries(response.data)}
-                streams.insertOne(stream)
-                  .then(function(err, client) {
-                    activities.updateOne({'id': activity.id}, {'$set': {'hasStream': true}})
-                      .then((client) => { })
-                      .catch((err) => { console.error(`Failed to update hasStream field of activity ${activity.id} of athlete ${athlete.id}: ${err}`) })
-                      .then(() => { c.fetchingStreams = false })
-                  })
-                  .catch((err) => {
-                    c.fetchingStreams = false
-                    console.error(`Failed to insert stream of activity ${activity.id} of athlete ${athlete.id}: ${err}`)
-                  })
-              }).catch(function(error) {
-                c.fetchingStreams = false
+              axios.get(`${stravaServer}/api/v3/activities/${activity.id}/streams?keys=${timeSeries.join(',')}`, {'headers': authorizationHeader(athlete)})
+                .then(function(response) {
+                  const streams = db.collection('streams')
+                  stream = {'id': activity.id, 'athleteId': athlete.athlete.id, 'trace': mergeTimeSeries(response.data)}
+                  streams.insertOne(stream)
+                    .then(function(err, client) {
+                      activities.updateOne({'id': activity.id}, {'$set': {'hasStream': true}})
+                        .then((client) => { })
+                        .catch((err) => { console.error(`Failed to update hasStream field of activity ${activity.id} of athlete ${athlete.id}: ${err}`) })
+                        .then(() => { c.fetchingStreams = false })
+                    })
+                    .catch((err) => {
+                      c.fetchingStreams = false
+                      console.error(`Failed to insert stream of activity ${activity.id} of athlete ${athlete.id}: ${err}`)
+                    })
+                }).catch(function(error) {
+                  c.fetchingStreams = false
 
-                console.error(`Failed to GET stream of activity ${activity.id} of athlete ${activity.athlete.id}: ${error}`)
+                  console.error(`Failed to GET stream of activity ${activity.id} of athlete ${activity.athlete.id}: ${error}`)
 
-                if (error.response.status === 401) {
-                  refreshAuthorization(athlete)
-                }
-              })
-          })
-      })
+                  if (error.response.status === 401) {
+                    refreshAuthorization(athlete)
+                  }
+                })
+            })
+        })
+    }
   })
 }
 
