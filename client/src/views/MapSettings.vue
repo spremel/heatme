@@ -8,7 +8,7 @@
         <b-form-input
           type="range"
           min="1"
-          max="50"
+          max="10"
           step="1"
           v-model="radiusValue"
           v-on:input="radiusHandler"
@@ -20,7 +20,7 @@
         <b-form-input
           type="range"
           min="1"
-          max="50"
+          max="20"
           step="1"
           v-model="blurValue"
           v-on:input="blurHandler"
@@ -67,16 +67,18 @@
 </template>
 
 <script>
+
 export default {
   name: 'MapSettings',
   data () {
     return {
-      radiusValue: 5,
-      blurValue: 25,
+      radiusValue: 3,
+      blurValue: 5,
 
-      selectedMapSource: 'osm',
+      selectedMapSource: 'bing-road-dark',
       mapSources: [
         {value: 'osm', text: 'OpenStreetMap'},
+        {value: 'bing-road-dark', text: 'Bing Road Dark'},
         {value: 'bing-road', text: 'Bing Road'},
         {value: 'stamen-toner', text: 'Toner'},
         {value: 'stamen-terrain', text: 'Terrain'}
@@ -105,6 +107,7 @@ export default {
       this.$root.$emit('filter-type-changed', this.selectedTypes)
     },
     mapSourceHandler () {
+      console.log('Map: ' + this.selectedMapSource)
       this.$root.$emit('map-source-changed', this.selectedMapSource)
     },
     dateAfterHandler () {
@@ -113,6 +116,14 @@ export default {
     dateBeforeHandler () {
       this.$root.$emit('filter-date-before-changed', this.dateBefore ? new Date(this.dateBefore) : null)
     }
+  },
+  mounted () {
+    this.$root.$on('map-mounted', () => {
+      this.blurHandler()
+      this.radiusHandler()
+      this.activityTypeHandler()
+      this.mapSourceHandler()
+    })
   }
 }
 </script>

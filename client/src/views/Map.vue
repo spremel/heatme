@@ -123,18 +123,31 @@ export default {
     this.$root.$on('filter-date-before-changed', value => { dateBefore = value; vectorSource.refresh() })
 
     this.$root.$on('map-source-changed', value => {
-      let source = new ol.source.OSM()
+      let source = null
 
       if (['stamen-toner', 'stamen-terrain'].includes(value)) {
-        source = new ol.source.Stamen({layer: value.slice('stamen-'.length)})
-      } else if (['bing-road'].includes(value)) {
+        source = new ol.source.Stamen({
+          layer: {
+            'stamen-toner': 'toner',
+            'stamen-terrain': 'terrain'
+          }[value]
+        })
+      } else if (['bing-road', 'bing-road-dark'].includes(value)) {
         source = new ol.source.BingMaps({
           key: 'Ag6xa_H_HmbKgcJ1yYwO0Qel03XQVdT2cZ38TWLEbnIhOFMORRUwzNhFgaCke7lu',
-          imagerySet: 'RoadOnDemand'
+          imagerySet: {
+            'bing-road': 'RoadOnDemand',
+            'bing-road-dark': 'CanvasDark'
+          }[value]
         })
+      } else {
+        source = new ol.source.OSM()
       }
+
       raster.setSource(source)
     })
+
+    this.$root.$emit('map-mounted')
   }
 }
 </script>
