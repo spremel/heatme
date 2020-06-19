@@ -8,8 +8,8 @@ const db = require('monk')('mongodb://localhost:27017/heatme')
 const cors = require('cors')
 const polyline = require('google-polyline')
 
-// const thisServer = 'http://localhost:8081'
-const thisServer = 'http://localhost'
+// const thisServer = 'http://35.210.237.237'
+const thisServer = 'http://localhost:8081'
 
 const stravaServer = 'https://www.strava.com'
 //const stravaServer = 'http://localhost:8091'
@@ -87,16 +87,16 @@ function issueAuthorizationRequest(code, refresh, res) {
 
 function sendData(qp, res) {
 
-  query = {}
+  var and = []
 
   if (qp.athletes)
-    query = {'athlete.id': {'$in': qp.athletes.split(',').map(a => {return parseInt(a)})}}
+    and.push({'athlete.id': {'$in': qp.athletes.split(',').map(a => {return parseInt(a)})}})
   if (qp.before)
-    query['startDate'] = {'$lt': new Date(qp.before * 1000)}
-  if (qp.after)
-    query['startDate'] = {'$gt': new Date(qp.after * 1000)}
+    and.push({'startDate': {'$lt': new Date(qp.before * 1000)}})
+  else if (qp.after)
+    and.push({'startDate': {'$gt': new Date(qp.after * 1000)}})
   if (qp.types)
-    query['type'] = {
+    and.push({'type': {
       '$in': qp.types.split(',').map(t => {
         return {
           'run': 'Run',
@@ -105,15 +105,20 @@ function sendData(qp, res) {
           'virtualrun': 'VirtualRun',
         }[t]
       })
-    }
+    }})
   if (qp.latmin)
-    query['bounds.latMax'] = {'$gt': parseFloat(qp.latmin)}
+    and.push({'bounds.latMax': {'$gt': parseFloat(qp.latmin)}})
   if (qp.latmax)
-    query['bounds.latMin'] = {'$lt': parseFloat(qp.latmax)}
+    and.push({'bounds.latMin': {'$lt': parseFloat(qp.latmax)}})
   if (qp.lngmin)
-    query['bounds.lngMax'] = {'$gt': parseFloat(qp.lngmin)}
+    and.push({'bounds.lngMax': {'$gt': parseFloat(qp.lngmin)}})
   if (qp.lngmax)
-    query['bounds.lngMin'] = {'$lt': parseFloat(qp.lngmax)}
+    and.push({'bounds.lngMin': {'$lt': parseFloat(qp.lngmax)}})
+
+  var query = { }
+  if (and.length) {
+    query = {'$and': and}
+  }
 
   console.debug(`Querying activities with filter ${JSON.stringify(query, undefined, 2)}`)
 
