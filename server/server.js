@@ -8,7 +8,8 @@ const db = require('monk')('mongodb://localhost:27017/heatme')
 const cors = require('cors')
 const polyline = require('google-polyline')
 
-const thisServer = 'http://localhost:8081'
+// const thisServer = 'http://localhost:8081'
+const thisServer = 'http://localhost'
 
 const stravaServer = 'https://www.strava.com'
 //const stravaServer = 'http://localhost:8091'
@@ -31,16 +32,17 @@ function replyError(errorMessage, statusCode, res) {
 function storeAthlete(data, res) {
 
   const athletes = db.get('athletes')
-  athletes.update({'athlete.id': data.athlete.id}, data, {upsert: true, w: 1, replaceOne: true},
-                  function(err, result) {
-                    if (err) {
-                      return replyError(`Failed to save token athlete information: ${err}`, 500, res)
-                    } else {
-                      res.writeHead(301, {'Location': `${thisServer}/#/map/${data.athlete.id}`})
-                      res.end()
-                      return true
-                    }
-                  })
+
+  athletes.update(
+    {'athlete.id': data.athlete.id}, {'$set': data}, {upsert: true, w: 1}, function(err, result) {
+      if (err) {
+        return replyError(`Failed to save token athlete information: ${err}`, 500, res)
+      } else {
+        res.writeHead(301, {'Location': `${thisServer}/#/map/${data.athlete.id}`})
+        res.end()
+        return true
+      }
+    })
 }
 
 function validateAuthorizationCode(requestUrl, res) {

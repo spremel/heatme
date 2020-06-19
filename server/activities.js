@@ -135,10 +135,16 @@ function now() {
 }
 
 function updateAthleteTime(athlete, lastActivityAt, upToDate, athletesDb, athleteContext) {
-  update = {'lastActivityAt': lastActivityAt}
+  update = { }
+
+  if (lastActivityAt) {
+    update['lastActivityAt'] = lastActivityAt
+  }
+
   if (upToDate) {
     update['updatedAt'] = now()
   }
+
   athletesDb.updateOne({'athlete.id': athlete.athlete.id}, {'$set': update})
     .then((client) => { console.debug(`Updated time fields for athlete ${athlete.athlete.id}`) })
     .catch((err) => { console.error(`Failed to update time fields for athlete ${athlete.athlete.id}: ${err}`)})
@@ -203,7 +209,7 @@ function updateAthletes() {
                     'lngMax': maxLng
                   }
                 } else {
-                  console.debug(`Missing polyline for activities ${a.id} of athlete ${athlete.athlete.id} (${activity.type})`)
+                  console.debug(`Missing polyline for activities ${a.id} of athlete ${athlete.athlete.id} (${a.type})`)
                 }
 
                 a['startDate'] = new Date(a.start_date);
