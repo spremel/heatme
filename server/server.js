@@ -95,6 +95,7 @@ function sendData(qp, res) {
         return {
           'run': 'Run',
           'ride': 'Ride',
+          'swim': 'Swim',
           'virtualride': 'VirtualRide',
           'virtualrun': 'VirtualRun',
         }[t]

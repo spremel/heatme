@@ -1,10 +1,18 @@
 <template>
 <div>
   <b-sidebar id="sidebar-settings" title="Settings" shadow>
-    <b-container>
-      <h4>Map</h4>
-      <b-form-row class="mt-2">
-        <label>Radius (px):</label>
+    <b-form-group
+      label="Map"
+      label-align="right"
+      label-size="lg"
+      label-class="font-weight-bold pt-0"
+      class="subsection"
+      >
+      <b-form-group
+        label="Radius (px):"
+        label-cols="4"
+        label-align="right"
+        >
         <b-form-input
           type="range"
           min="1"
@@ -14,9 +22,12 @@
           v-on:input="radiusHandler"
           v-on:change="radiusHandler"
           />
-      </b-form-row>
-      <b-form-row class="mt-2">
-        <label>Blur (px):</label>
+      </b-form-group>
+      <b-form-group
+        label="Blur (px):"
+        label-cols="4"
+        label-align="right"
+        >
         <b-form-input
           type="range"
           min="1"
@@ -26,42 +37,59 @@
           v-on:input="blurHandler"
           v-on:change="blurHandler"
           />
-      </b-form-row>
-      <b-form-row>
-        <label>Map Style</label>
+      </b-form-group>
+      <b-form-group
+        label="Style:"
+        label-cols="4"
+        label-align="right"
+        >
         <b-form-select
           v-model="selectedMapSource"
           v-on:change="mapSourceHandler"
           :options="mapSources"
           />
-      </b-form-row>
-    </b-container>
-    <b-container>
-      <h4>Activities</h4>
-      <b-form-row class="mt-4">
-        <label>Type:</label>
-        <b-form-select
+      </b-form-group>
+    </b-form-group>
+    <b-form-group
+      label="Activities"
+      label-align="right"
+      label-size="lg"
+      label-class="font-weight-bold pt-0"
+      class="subsection"
+      >
+      <!-- <h4>Activities</h4> -->
+      <b-form-group
+        >
+        <b-form-checkbox-group
           multiple
           v-model="selectedTypes"
           v-on:change="activityTypeHandler"
           :options="types"
           />
-      </b-form-row>
-      <b-form-row class="mt-4">
-        <label>After:</label>
+      </b-form-group>
+      <b-form-group
+        label="After:"
+        label-cols="4"
+        label-align="right"
+        >
         <b-form-datepicker
           :reset-button="true"
           v-model="dateAfter"
           v-on:input="dateAfterHandler"
           />
-        <label>Before:</label>
+      </b-form-group>
+      <b-form-group
+        label="Before:"
+        label-cols="4"
+        label-align="right"
+        >
         <b-form-datepicker
           :reset-button="true"
           v-model="dateBefore"
           v-on:input="dateBeforeHandler"
           />
-      </b-form-row>
-    </b-container>
+      </b-form-group>
+  </b-form-group>
   </b-sidebar>
 </div>
 </template>
@@ -87,10 +115,11 @@ export default {
       dateAfter: null,
       dateBefore: null,
 
-      selectedTypes: ['run'],
+      selectedTypes: ['run', 'ride', 'swim'],
       types: [
         {value: 'run', text: 'Run'},
         {value: 'ride', text: 'Ride'},
+        {value: 'swim', text: 'Swim'},
         {value: 'virtualrun', text: 'Virtual Run'},
         {value: 'virtualride', text: 'Virtual Ride'}
       ]
@@ -128,16 +157,12 @@ export default {
 </script>
 
 <style scoped>
-label {
-    display: inline-block;
-    margin-right: 20px;
-    vertical-align: top;
-}
 
-h4 {
-    margin-top: 40px;
+.subsection {
+    margin-top: 20px;
     margin-bottom: 10px;
-    text-align: right;
+    padding-right: 10px;
+    padding-left: 10px;
 }
 
 </style>
