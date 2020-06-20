@@ -4,21 +4,15 @@ const http = require('http')
 const url = require('url')
 const express = require('express')
 const assert = require('assert')
-const db = require('monk')('mongodb://localhost:27017/heatme')
 const cors = require('cors')
 const polyline = require('google-polyline')
 
-// const thisServer = 'http://35.210.237.237'
-const thisServer = 'http://localhost:8081'
+const constants = require('./constants.js').constants
+console.log(constants)
 
-const stravaServer = 'https://www.strava.com'
-//const stravaServer = 'http://localhost:8091'
+const monk = require('monk')
 
-const authServer = 'https://www.strava.com'
-//const authServer = 'http://localhost:8090'
-
-const clientId = 49670
-const clientSecret = '13d5f9f7bc4e2295089f46f81e05fce8b8b9f6b2'
+const db = monk(`mongodb://${constants.DATABASE_ADDRESS}/${constants.DATABASE_NAME}`)
 
 function replyError(errorMessage, statusCode, res) {
   console.error(errorMessage)
@@ -38,7 +32,7 @@ function storeAthlete(data, res) {
       if (err) {
         return replyError(`Failed to save token athlete information: ${err}`, 500, res)
       } else {
-        res.writeHead(301, {'Location': `${thisServer}/#/map/${data.athlete.id}`})
+        res.writeHead(301, {'Location': `${constants.DOMAIN_SERVER}/#/map/${data.athlete.id}`})
         res.end()
         return true
       }
@@ -68,20 +62,20 @@ function validateAuthorizationCode(requestUrl, res) {
 
 function issueAuthorizationRequest(code, refresh, res) {
   var body = querystring.stringify({
-    'client_id': clientId.toString(),
-    'client_secret': clientSecret,
+    'client_id': constants.CLIENT_ID,
+    'client_secret': constants.CLIENT_SECRET,
     'code': code,
     'grant_type': 'authorization_code',
   })
 
-  axios.post(authServer + '/oauth/token', body, { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
+  axios.post(`${constants.AUTH_SERVER}/oauth/token`, body, { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
     .then(function (response) {
       console.log(response.data);
       storeAthlete(response.data, res)
       return true
     })
     .catch(function (error) {
-      return replyError(`Request to ${authServer}/oauth/token failed: ` + error, 400, res)
+      return replyError(`Request to ${constants.AUTH_SERVER}/oauth/token failed: ` + error, 400, res)
     })
 }
 

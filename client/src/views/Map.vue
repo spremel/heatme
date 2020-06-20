@@ -9,6 +9,7 @@
 
 <script>
 
+import {ORIGIN_SERVER} from '@/constants.js'
 import MapSettings from '@/views/MapSettings'
 import 'ol/ol.css'
 
@@ -35,9 +36,6 @@ export default {
   },
   components: { MapSettings },
   mounted () {
-    // var serverIp = '35.210.237.237'
-    var serverIp = 'localhost:8080'
-
     var activityTypes = []
     var dateAfter = null
     var dateBefore = null
@@ -45,9 +43,6 @@ export default {
     var vectorSource = new ol.source.Vector({
       strategy: ol.loadingstrategy.bbox,
       url: (extent, resolution, projection) => {
-        console.log('Extent: ' + extent)
-        console.log('Resolution: ' + resolution)
-
         var extent4326 = [
           ol.proj.transform(ol.extent.getBottomLeft(extent), 'EPSG:3857', 'EPSG:4326'),
           ol.proj.transform(ol.extent.getTopLeft(extent), 'EPSG:3857', 'EPSG:4326'),
@@ -79,19 +74,17 @@ export default {
           filters.before = ~~(dateBefore.getTime() / 1000)
         }
 
-        var url = `http://${serverIp}/data?${querystring.stringify(filters)}`
+        var url = `${ORIGIN_SERVER}/data?${querystring.stringify(filters)}`
         console.log('Url: ' + url)
 
         return url
       },
 
-      format: new customFormat.GPXWithId({'name': 'toto'})
+      format: new customFormat.GPXWithId()
     })
 
     var heatmap = new ol.layer.Heatmap({
-      source: vectorSource,
-      radius: 5,
-      blur: 15
+      source: vectorSource
     })
 
     var raster = new ol.layer.Tile({

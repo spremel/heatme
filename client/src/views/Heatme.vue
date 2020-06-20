@@ -7,6 +7,7 @@
 
 <script>
 
+import {ORIGIN_SERVER, AUTH_SERVER, CLIENT_ID} from '@/constants.js'
 export default {
 
   name: 'Heatme',
@@ -15,10 +16,7 @@ export default {
   },
   methods: {
     loginStrava: () => {
-      // var serverIp = '35.210.237.237'
-      var serverIp = 'localhost:8080'
-
-      location.href = `http://www.strava.com/oauth/authorize?client_id=49670&response_type=code&redirect_uri=http://${serverIp}/token_exchange&approval_prompt=force&scope=activity:read`
+      location.href = `${AUTH_SERVER}/oauth/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${ORIGIN_SERVER}/token_exchange&approval_prompt=force&scope=activity:read`
     }
   },
   mounted () {

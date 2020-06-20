@@ -107,7 +107,6 @@ export default {
       this.$root.$emit('filter-type-changed', this.selectedTypes)
     },
     mapSourceHandler () {
-      console.log('Map: ' + this.selectedMapSource)
       this.$root.$emit('map-source-changed', this.selectedMapSource)
     },
     dateAfterHandler () {
