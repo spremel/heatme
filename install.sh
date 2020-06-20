@@ -6,9 +6,8 @@ TARGET=/var/www/html
 
 cd $THIS_DIR/client
 rm -f dist/*
-
-npm install
-npm run-script build
+# npm install
+npm run build
+rm -rf $TARGET.old
 mv $TARGET $TARGET.old
 cp -r dist $TARGET
-cp -r $THIS_DIR/server/data $TARGET

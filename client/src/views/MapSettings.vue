@@ -57,13 +57,12 @@
       label-class="font-weight-bold pt-0"
       class="subsection"
       >
-      <!-- <h4>Activities</h4> -->
       <b-form-group
         >
         <b-form-checkbox-group
           multiple
           v-model="selectedTypes"
-          v-on:change="activityTypeHandler"
+          v-on:input="activityTypeHandler"
           :options="types"
           />
       </b-form-group>
@@ -133,6 +132,7 @@ export default {
       this.$root.$emit('heatmap-radius-changed', parseInt(this.radiusValue, 10))
     },
     activityTypeHandler () {
+      console.log(this.selectedTypes)
       this.$root.$emit('filter-type-changed', this.selectedTypes)
     },
     mapSourceHandler () {
