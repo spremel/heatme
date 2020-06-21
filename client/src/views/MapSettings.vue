@@ -99,8 +99,8 @@ export default {
   name: 'MapSettings',
   data () {
     return {
-      radiusValue: 3,
-      blurValue: 5,
+      radiusValue: 1,
+      blurValue: 1,
 
       selectedMapSource: 'bing-road-dark',
       mapSources: [
