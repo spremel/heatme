@@ -92,19 +92,25 @@ function refreshAuthorization(athlete) {
     console.warn(`API replied with 401 but the access token for athlete is still valid for ${remaining} seconds`)
   }
   
-  axios.post(`${constants.AUTH_SERVER}/oauth/token`, querystring.stringify({
-    'client_id': constants.CLIENT_ID,
-    'client_secret': constants.CLIENT_SECRET,
-    'refresh_token': athlete.refresh_token,
-    'grant_type': 'refresh_token',
-  }), { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
-    .then(function (response) {
-      console.log(response.data);
-      return storeAthlete(response.data, res)
-    })
-    .catch(function (error) {
-      return replyError(`Failed to refresh authorization for athlete ${athlete.athlete.id}: request to ${constants.AUTH_SERVER} failed: ` + error, 400, res)
-    })
+  fs.readFile(path.join(process.env.HOME, '.strava', 'secret'), 'utf8', function(err, data) {
+    if (err) {
+      return console.log(`Failed to load client secret: ${err}`)
+    }
+
+    axios.post(`${constants.AUTH_SERVER}/oauth/token`, querystring.stringify({
+      'client_id': constants.CLIENT_ID,
+      'client_secret': data.trim(),
+      'refresh_token': athlete.refresh_token,
+      'grant_type': 'refresh_token',
+    }), { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
+      .then(function (response) {
+        console.log(response.data);
+        return storeAthlete(response.data, res)
+      })
+      .catch(function (error) {
+        return console.log(`Failed to refresh authorization for athlete ${athlete.athlete.id}: request to ${constants.AUTH_SERVER} failed: ${error}`)
+      })
+  })
 }
 
 function authorizationHeader(athlete) {

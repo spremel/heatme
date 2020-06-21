@@ -6,7 +6,8 @@ const express = require('express')
 const assert = require('assert')
 const cors = require('cors')
 const polyline = require('google-polyline')
-
+const fs = require('fs')
+const path = require('path')
 const constants = require('./constants.js').constants
 console.log(constants)
 
@@ -61,22 +62,27 @@ function validateAuthorizationCode(requestUrl, res) {
 }
 
 function issueAuthorizationRequest(code, refresh, res) {
-  var body = querystring.stringify({
-    'client_id': constants.CLIENT_ID,
-    'client_secret': constants.CLIENT_SECRET,
-    'code': code,
-    'grant_type': 'authorization_code',
-  })
+  fs.readFile(path.join(process.env.HOME, '.strava', 'secret'), 'utf8', function(err, data) {
+    if (err) {
+      return replyError('Authorization failed, please contact the server administrator if the issue persists contact', 500, res)
+    }
+    var body = querystring.stringify({
+      'client_id': constants.CLIENT_ID,
+      'client_secret': data.trim(),
+      'code': code,
+      'grant_type': 'authorization_code',
+    })
 
-  axios.post(`${constants.AUTH_SERVER}/oauth/token`, body, { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
-    .then(function (response) {
-      console.log(response.data);
-      storeAthlete(response.data, res)
-      return true
-    })
-    .catch(function (error) {
-      return replyError(`Request to ${constants.AUTH_SERVER}/oauth/token failed: ` + error, 400, res)
-    })
+    axios.post(`${constants.AUTH_SERVER}/oauth/token`, body, { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
+      .then(function (response) {
+        console.log(response.data);
+        storeAthlete(response.data, res)
+        return true
+      })
+      .catch(function (error) {
+        return replyError(`Request to ${constants.AUTH_SERVER}/oauth/token failed: ${error}`, 400, res)
+      })
+  })
 }
 
 function sendData(qp, res) {
