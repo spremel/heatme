@@ -1,6 +1,8 @@
 const MongoClient = require('mongodb').MongoClient;
 const axios = require('axios').default;
 const polyline = require('google-polyline')
+const fs = require('fs')
+const path = require('path')
 const constants = require('./constants.js').constants
 
 const dbConnectionString = `mongodb://${constants.DATABASE_ADDRESS}/`
