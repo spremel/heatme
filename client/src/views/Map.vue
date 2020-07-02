@@ -1,8 +1,10 @@
 <template>
 <b-container fluid>
   <MapSettings></MapSettings>
-  <div id="map" class="map">
-    <b-button v-b-toggle.sidebar-settings size="sm" class="btn">>></b-button>
+  <div id="map">
+    <b-button id="btn-settings" v-b-toggle.sidebar-settings size="sm">
+      <b-icon icon="gear-fill" aria-hidden="true"></b-icon>
+    </b-button>
   </div>
 </b-container>
 </template>
@@ -146,19 +148,28 @@ export default {
 </script>
 
 <style scoped>
-.map {
+.ol-control {
+    position: fixed;
+}
+
+.ol-zoom {
+    left: unset;
+    right: 5em;
+}
+
+#map {
     height: 100%;
     width: 100%;
     position:fixed;
     padding-right: 20px;
     padding-bottom: 10px;
 }
-.btn {
+#btn-settings {
     position: absolute;
     top: 95%;
     left: 0%;
     z-index: 1;
+    transform: translate(0%, -10%);
     margin-left: 10px;
 }
-
 </style>

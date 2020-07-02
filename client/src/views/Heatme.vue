@@ -44,7 +44,7 @@ export default {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%)
+    transform: translate(-50%, -50%);
   }
   #logo {
     position: absolute;
@@ -52,19 +52,19 @@ export default {
     left: 50%;
     width: 100px;
     z-index: 1;
-    transform: translate(-50%, -50%)
+    transform: translate(-50%, -50%);
   }
   #btn {
     position: absolute;
     top: 15%;
     left: 50%;
-    transform: translate(-50%, -50%)
+    transform: translate(-50%, -50%);
   }
   #screen {
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%)
+    transform: translate(-50%, -50%);
   }
   #strava-logo {
     position: absolute;

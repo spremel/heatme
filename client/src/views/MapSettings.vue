@@ -88,12 +88,31 @@
           v-on:input="dateBeforeHandler"
           />
       </b-form-group>
-  </b-form-group>
+      <b-button-group id="session">
+        <b-button
+          id="logout"
+          variant="outline-dark"
+          v-on:click="logoutHandler"
+          >
+          <b-icon
+            icon="power" aria-hidden="true"></b-icon> Logout
+        </b-button>
+        <b-button
+          id="erase-data"
+          variant="outline-dark"
+          v-on:click="eraseDataHandler"
+          >
+          <b-icon icon="trash" aria-hidden="true"></b-icon> Erase my data
+        </b-button>
+      </b-button-group>
+    </b-form-group>
   </b-sidebar>
 </div>
 </template>
 
 <script>
+import {ORIGIN_SERVER} from '@/constants.js'
+import axios from 'axios'
 
 export default {
   name: 'MapSettings',
@@ -121,7 +140,9 @@ export default {
         {value: 'swim', text: 'Swim'},
         {value: 'virtualrun', text: 'Virtual Run'},
         {value: 'virtualride', text: 'Virtual Ride'}
-      ]
+      ],
+
+      athlete: this.$route.params.athleteId
     }
   },
   methods: {
@@ -143,6 +164,27 @@ export default {
     },
     dateBeforeHandler () {
       this.$root.$emit('filter-date-before-changed', this.dateBefore ? new Date(this.dateBefore) : null)
+    },
+
+    logoutHandler () {
+      axios.post(`${ORIGIN_SERVER}/athletes/${this.athlete}/logout`)
+        .then(res => {
+          this.$cookies.remove('athlete')
+          this.$router.push({name: 'Welcome'})
+        })
+        .catch(err => {
+          console.error(`Failed to logout: ${err}`)
+        })
+    },
+    eraseDataHandler () {
+      axios.delete(`${ORIGIN_SERVER}/athletes/${this.athlete}`)
+        .then(res => {
+          this.$cookies.remove('athlete')
+          this.$router.push({name: 'Welcome'})
+        })
+        .catch(err => {
+          console.error(`Failed to erase: ${err}`)
+        })
     }
   },
   mounted () {
@@ -165,4 +207,9 @@ export default {
     padding-left: 10px;
 }
 
+#session {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+}
 </style>
