@@ -5,10 +5,64 @@ const fs = require('fs')
 const path = require('path')
 const querystring = require('querystring')
 const constants = require('./constants.js').constants
+const Event = require('events')
 
 const dbConnectionString = `mongodb://${constants.DATABASE_ADDRESS}/`
 
-var context = {initDb: false, athletes: {}}
+var context = {athletes: {}}
+
+class OnFetchingAthleteActivities extends Event {}
+class OnFetchingAthleteAuthorization extends Event {}
+class OnFetchingActivityStreams extends Event {}
+
+const onFetchingAthleteActivities = new OnFetchingAthleteActivities()
+const onFetchingAthleteAuthorization = new OnFetchingAthleteAuthorization()
+const onFetchingActivityStreams = new OnFetchingActivityStreams()
+
+onFetchingAthleteActivities.on('event', (athlete, state) => {
+  console.debug(`OnFetchingAthleteActivities emitted with ${athlete.athlete.id}, ${state}`)
+  getAthleteContext(athlete).fetchingActivities = state
+})
+onFetchingAthleteActivities.on('error', (err) => { console.error(`OnFetchingActivities error: ${err}`) } )
+
+onFetchingAthleteAuthorization.on('event', (athlete, state) => {
+  console.debug(`OnFetchingAthleteAuthorization emmited with ${athlete.athlete.id}, ${state}`)
+  getAthleteContext(athlete).fetchingAuthorization = state
+})
+onFetchingAthleteAuthorization.on('error', (err) => { console.error(`OnFetchingAthleteAuthorization error: ${err}`) } )
+
+onFetchingActivityStreams.on('event', (athlete, activity, state) => {
+  console.debug(`OnFetchingActivityStreams emmited with ${athlete.athlete.id}, ${activity.id}, ${state}`)
+  getActivityContext(athlete, activity).fetchingStreams = state
+})
+onFetchingActivityStreams.on('error', (err) => { console.error(`OnFetchingActivityStreams error: ${err}`) } )
+
+function getAthleteContext(athlete) {
+  if (!context.athletes[athlete.athlete.id]) {
+    context.athletes[athlete.athlete.id] = {
+      activities: { },
+      fetchingActivities: false,
+      fetchingAuthorization: false
+    }
+  }
+
+  return context.athletes[athlete.athlete.id]
+}
+
+function getActivityContext(athlete, activity) {
+  var c = getAthleteContext(athlete)
+  if (!c.activities[activity.id]) {
+    c.activities[activity.id] = {
+      fetchingStreams: false
+    }
+  }
+
+  return c.activities[activity.id]
+}
+
+function isFetchingAthleteActivities(athlete) { return getAthleteContext(athlete).fetchingActivities }
+function isFetchingAthleteAuthorization(athlete) { return getAthleteContext(athlete).fetchingAuthorization }
+function isFetchingActivityStreams(athlete) { return getActivityContext(athlete, activity).fetchingStreams }
 
 function initializeDatabase() {
   MongoClient.connect(dbConnectionString)
@@ -42,30 +96,7 @@ function initializeDatabase() {
     })
 }
 
-function getAthleteActivityContext(athlete, activity) {
-  c = getAthleteContext(athlete)
-  if (!c.activities[activity.id]) {
-    c.activities[activity.id] = {
-      fetchingStreams: false,
-    }
-  }
-
-  return c.activities[activity.id]
-}
-
-function getAthleteContext(athlete) {
-  if (!context.athletes[athlete.athlete.id]) {
-    context.athletes[athlete.athlete.id] = {
-      activities: { },
-      fetchingActivities: false,
-      fetchingAuthorization: false,
-    }
-  }
-
-  return context.athletes[athlete.athlete.id]
-}
-
-function updateToken(athlete, token, context) {
+function updateAuthorization(athlete, token) {
   MongoClient.connect(dbConnectionString)
     .then(function(client) {
 
@@ -73,37 +104,36 @@ function updateToken(athlete, token, context) {
       athletes.updateOne(
         {'athlete.id': athlete.athlete.id}, {'$set': token}, {upsert: true, w: 1})
         .then(function(result) {
-          return console.log(`Refreshed token for athlete ${athlete.athlete.id}`)
+          console.log(`Refreshed token for athlete ${athlete.athlete.id}`)
         })
         .catch(function (err) {
-          return console.error(`Failed to save token athlete information: ${err}`)
+          console.error(`Failed to save token athlete information: ${err}`)
         })
         .then(function() {
-          context.fetchingAuthorization = false
+          onFetchingAthleteAuthorization.emit('event', athlete, false)
         })
     })
     .catch(function(err) {
-        context.fetchingAuthorization = false
-        return console.error(`Failed to connect to the database: ${err}`)
+      onFetchingAthleteAuthorization.emit('event', athlete, false)
+      console.error(`Failed to connect to the database: ${err}`)
     })
 }
 
 function refreshAuthorization(athlete) {
-  var c = getAthleteContext(athlete)
 
-  if (c.fetchingAuthorization) {
+  if (isFetchingAthleteAuthorization(athlete)) {
     console.debug(`Skipping authorization refresh for athlete ${athlete.athlete.id}`)
     return
   }
 
   remaining = athlete.expires_at - now()
   if (remaining > 0) {
-    console.warn(`API replied with 401 but the access token for athlete is still valid for ${remaining} seconds`)
+    console.warn(`API replied negatively but the access token for athlete is still valid for ${remaining} seconds`)
   }
   
   fs.readFile(path.join(process.env.HOME, '.strava', 'secret'), 'utf8', function(err, data) {
     if (err) {
-      return console.log(`Failed to load client secret: ${err}`)
+      console.log(`Failed to load client secret: ${err}`)
     }
 
     body = {
@@ -111,21 +141,17 @@ function refreshAuthorization(athlete) {
       'client_secret': data.trim(),
       'refresh_token': athlete.refresh_token,
       'grant_type': 'refresh_token',
-      'scope': 'activity:read'
     }
-    console.log(body)
 
-    c.fetchingAuthorization = true
+    onFetchingAthleteAuthorization.emit('event', athlete, true)
     axios.post(`${constants.AUTH_SERVER}/oauth/token`, querystring.stringify(body), { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
       .then(function (response) {
         console.log(response.data);
-        return updateToken(athlete, response.data, c)
+        updateAuthorization(athlete, response.data)
       })
       .catch(function (error) {
-        c.fetchingAuthorization = false
+        onFetchingAthleteAuthorization.emit('event', athlete, false)
         console.error(`Failed to refresh authorization for athlete ${athlete.athlete.id}: request to ${constants.AUTH_SERVER} failed: ${error}`)
-        if (error.response)
-          console.error(error.response.data)
       })
   })
 }
@@ -150,7 +176,7 @@ function now() {
   return parseInt(Date.now() / 1000)
 }
 
-function updateAthleteTime(athlete, lastActivityAt, upToDate, athletesDb, athleteContext) {
+function updateAthleteTime(athlete, lastActivityAt, upToDate, athletesDb) {
   update = { }
 
   if (lastActivityAt) {
@@ -164,7 +190,7 @@ function updateAthleteTime(athlete, lastActivityAt, upToDate, athletesDb, athlet
   athletesDb.updateOne({'athlete.id': athlete.athlete.id}, {'$set': update})
     .then((client) => { console.debug(`Updated time fields for athlete ${athlete.athlete.id}`) })
     .catch((err) => { console.error(`Failed to update time fields for athlete ${athlete.athlete.id}: ${err}`)})
-    .then(() => { athleteContext.fetchingActivities = false })
+    .then(() => { onFetchingAthleteActivities.emit('event', athlete, false) })
 }
 
 function updateAthletes() {
@@ -181,13 +207,12 @@ function updateAthletes() {
         {'updatedAt': {'$exists': false} }
       ]}).forEach(
         function(athlete) {
-          var c = getAthleteContext(athlete)
-          if (c.fetchingActivities) {
+          if (isFetchingAthleteActivities(athlete)) {
             console.debug(`Skipping activities fetch for athlete ${athlete.athlete.id}`)
             return
           }
 
-          c.fetchingActivities = true
+          onFetchingAthleteActivities.emit('event', athlete, true)
           var lastActivityAt = athlete.lastActivityAt || 0
           var sentinel = 20
 
@@ -202,7 +227,7 @@ function updateAthletes() {
               ) : 0
 
               if (!response.data.length) {
-                updateAthleteTime(athlete, lastActivityAt, true, athletes, c)
+                updateAthleteTime(athlete, lastActivityAt, true, athletes)
                 return
               }
               activities.insertMany(response.data.map(a => {
@@ -229,18 +254,17 @@ function updateAthletes() {
 
                 return a;
               }))
-                .then((client) => { updateAthleteTime(athlete, lastActivityAt, false, athletes, c) })
+                .then((client) => { updateAthleteTime(athlete, lastActivityAt, false, athletes) })
                 .catch((err) => {
                   console.error(`Failed to insert activities of athlete ${athlete.athlete.id}: ${err}`)
-                  updateAthleteTime(athlete, lastActivityAt, true, athletes, c)
-                  c.fetchingActivities = false
-                  return
+                  updateAthleteTime(athlete, lastActivityAt, false, athletes)
+                  onFetchingAthleteActivities.emit('event', athlete, false)
                 })
             })
             .catch(function(error) {
-              c.fetchingActivities = false
+              onFetchingAthleteActivities.emit('event', athlete, false)
               console.error(`Failed to GET activities of athlete ${athlete.athlete.id}: ${error}`)
-              if (error.response.status === 401) {
+              if (error.response && error.response.status === 401) {
                 refreshAuthorization(athlete)
               }
             })
@@ -256,13 +280,11 @@ function updateAthletes() {
         function(activity) {
           athletes.find({'athlete.id': activity.athlete.id}).forEach(
             function(athlete) {
-              var c = getAthleteActivityContext(athlete, activity)
-
-              if (c.fetchingStreams) {
+              if (isFetchingActivityStreams(athlete, activity)) {
                 console.debug(`Skipping streams fetch for activity ${activity.id} of athlete ${athlete.athlete.id}`)
                 return                
               }
-              c.fetchingStreams = true
+              onFetchingActivityStreams.emit('event', athlete, activity, true)
 
               console.log(`Fetching stream for activity ${activity.id} for athlete ${athlete.athlete.id}`)
               timeSeries = [
@@ -279,18 +301,17 @@ function updateAthletes() {
                       activities.updateOne({'id': activity.id}, {'$set': {'hasStream': true}})
                         .then((client) => { })
                         .catch((err) => { console.error(`Failed to update hasStream field of activity ${activity.id} of athlete ${athlete.id}: ${err}`) })
-                        .then(() => { c.fetchingStreams = false })
+                        .then(() => { onFetchingActivityStreams.emit('event', athlete, activity, false) })
                     })
                     .catch((err) => {
-                      c.fetchingStreams = false
+                      onFetchingActivityStreams.emit('event', athlete, activity, false)
                       console.error(`Failed to insert stream of activity ${activity.id} of athlete ${athlete.id}: ${err}`)
                     })
                 }).catch(function(error) {
-                  c.fetchingStreams = false
-
+                  onFetchingActivityStreams.emit('event', athlete, activity, false)
                   console.error(`Failed to GET stream of activity ${activity.id} of athlete ${activity.athlete.id}: ${error}`)
 
-                  if (error.response.status === 401) {
+                  if (error.response && error.response.status === 401) {
                     refreshAuthorization(athlete)
                   }
                 })

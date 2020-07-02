@@ -33,7 +33,10 @@ function storeAthlete(data, res) {
       if (err) {
         return replyError(`Failed to save token athlete information: ${err}`, 500, res)
       } else {
-        res.writeHead(301, {'Location': `${constants.DOMAIN_SERVER}/#/map/${data.athlete.id}`})
+        res.writeHead(301, {
+          'Location': `${constants.DOMAIN_SERVER}/#/map/${data.athlete.id}`,
+          'Set-Cookie': `athlete=${data.athlete.id}; Max-Age=604800`
+        })
         res.end()
         return true
       }
@@ -173,8 +176,58 @@ function sendData(qp, res) {
   })
 }
 
+function erase(athleteId, res) {
+  const streams = db.get('streams')
+  console.log(`Erasing streams of athlete ${athleteId}`)
+  streams.remove({'athleteId': athleteId})
+    .then(function(result) {
+      console.log(`Erasing activities of athlete ${athleteId}`)
+      const activities = db.get('activities')
+      activities.remove({'athlete.id': athleteId})
+        .then(function(result) {
+          logout(athleteId, res)
+        })
+        .catch(function(err) {
+          replyError(`Failed to remove activities of athlete ${athleteId}: ${err}`, 500, res)
+        })
+    })
+    .catch(function(err) {
+      replyError(`Failed to remove streams of athlete ${athleteId}: ${err}`, 500, res)
+    })
+}
+
+function logout(athleteId, res) {
+  const athletes = db.get('athletes')
+
+  console.log(`Erasing athlete ${athleteId}`)
+  athletes.findOneAndDelete({'athlete.id': athleteId})
+    .then(athlete => {
+      if (!athlete) {
+        console.warn(`Could not find athlete ${athleteId}`)
+        res.writeHead(200)
+        res.end()
+      } else {
+        console.log(`Unauthorizing access to Strava for athlete ${athleteId}`)
+        axios.post(`${constants.AUTH_SERVER}/oauth/deauthorize?access_token=${athlete.access_token}`)
+          .then(function (response) {
+            console.log(`Successfully deleted athlete ${athleteId}`)
+          })
+          .catch(function (error) {
+            console.error(`Failed to deauthorize from server ${constants.AUTH_SERVER}: ${error}`)
+          })
+          .then(function() {
+            res.writeHead(200)
+            res.end()
+          })
+      }
+    }).catch(function(err) {
+      console.error(`Could not find athlete ${athleteId}: ${err}`)
+    })
+}
+
 var app = express()
 app.use(cors())
+
 app
   .get('/token_exchange', function(req, res, next) {
     var requestUrl = url.parse(req.url)
@@ -184,12 +237,16 @@ app
   })
   .get('/data', function(req, res, next) {
     var requestUrl = url.parse(req.url)
-    queryParameters = {}
     if (requestUrl.search) {
       queryParameters = querystring.parse(requestUrl.search.slice(1))
     }
     sendData(queryParameters, res)
   })
-
+  .post('/athletes/:id/logout', function(req, res, next) {
+    logout(parseInt(req.params['id']), res)
+  })
+  .delete('/athletes/:id', function(req, res, next) {
+    erase(parseInt(req.params['id']), res)
+  })
 console.log("Listening on 8080")
 app.listen(8080)
