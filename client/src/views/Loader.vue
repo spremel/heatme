@@ -1,6 +1,6 @@
 <template>
 <div id="loader-main-div">
-  <b-img id="loader-logo" src="static/heat-me.png" />
+  <b-img id="loader-logo" src="static/heat-me.png" fluid center/>
   <b-progress id="loader-progress" height="2rem" >
     <b-progress-bar id="loader-progress-bar" :value="progress">
       {{ loadingLabel }}
@@ -48,13 +48,12 @@ export default {
       this.$store.commit('fetchAthlete', this.$route.params.athleteId)
       if (this.athlete && this.athlete.lastActivityAt && this.athlete.firstActivityAt) {
         this.progress = 100 * (this.athlete.lastActivityAt - this.athlete.firstActivityAt) / (new Date() / 1000 - this.athlete.firstActivityAt)
-        console.log('Progress: ' + this.progress)
       }
 
       if (this.ready) {
         clearInterval(this.loader)
         clearInterval(this.animation)
-        this.$router.push({name: 'Map', params: {id: this.athlete.athlete.id}})
+        // this.$router.push({name: 'Map', params: {id: this.athlete.athlete.id}})
       }
     }, 1000)
   },
@@ -76,9 +75,6 @@ export default {
 
 #loader-logo {
     margin-top: 10%;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 #loader-progress {
