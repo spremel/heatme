@@ -21,8 +21,4 @@ export default {
   margin-top: 5px;
 }
 
-.ol-zoom {
-    left: unset;
-    right: 6px;
-}
 </style>

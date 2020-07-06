@@ -13,7 +13,6 @@
 
 import {ORIGIN_SERVER} from '@/constants.js'
 import MapSettings from '@/views/MapSettings'
-import 'ol/ol.css'
 
 // import GPXWithId from '@/format/format.js'
 const customFormat = require('@/format/format.js')
@@ -175,4 +174,13 @@ export default {
     margin-left: 10px;
 }
 
+</style>
+
+<style>
+@import url('ol/ol.css');
+
+.ol-zoom {
+    left: unset;
+    right: 6px;
+}
 </style>

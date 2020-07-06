@@ -1,5 +1,5 @@
-// const DOMAIN_SERVER = 'https://heatme.io'
-const DOMAIN_SERVER = 'http://localhost:8081'
+const DOMAIN_SERVER = 'https://heatme.io'
+// const DOMAIN_SERVER = 'http://localhost:8081'
 
 const AUTH_SERVER = 'http://www.strava.com'
 // const AUTH_SERVER = 'http://localhost:8090'

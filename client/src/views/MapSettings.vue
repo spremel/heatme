@@ -9,7 +9,7 @@
       class="subsection"
       >
       <b-form-group
-        label="Radius (px):"
+        label="Radius:"
         label-cols="4"
         label-align="right"
         >
@@ -24,7 +24,7 @@
           />
       </b-form-group>
       <b-form-group
-        label="Blur (px):"
+        label="Blur:"
         label-cols="4"
         label-align="right"
         >
@@ -88,6 +88,8 @@
           v-on:input="dateBeforeHandler"
           />
       </b-form-group>
+    </b-form-group>
+    <template v-slot:footer="{ hide }">
       <b-button-group id="session">
         <b-button
           id="logout"
@@ -112,7 +114,7 @@
           Erase all my data from the application ?
         </b-modal>
       </b-button-group>
-    </b-form-group>
+    </template>
   </b-sidebar>
 </div>
 </template>
@@ -213,9 +215,4 @@ export default {
     padding-left: 10px;
 }
 
-#session {
-    position: absolute;
-    bottom: 10px;
-    right: 10px;
-}
 </style>
