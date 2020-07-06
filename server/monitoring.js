@@ -157,7 +157,7 @@ async function refreshAuthorization(athlete, db) {
 
   onFetchingAthleteAuthorization.emit('event', athlete, true)
   try {
-    await axios.post(`${constants.AUTH_SERVER}/oauth/token`, querystring.stringify(body), { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
+    response = await axios.post(`${constants.AUTH_SERVER}/oauth/token`, querystring.stringify(body), { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
     await storeAuthorization(athlete, response.data, db)
   } catch (error) {
     console.error(`Failed to refresh authorization for athlete ${athlete.athlete.id}: request to ${constants.AUTH_SERVER} failed: ${error}`)
