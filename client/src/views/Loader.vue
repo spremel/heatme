@@ -53,7 +53,7 @@ export default {
       if (this.ready) {
         clearInterval(this.loader)
         clearInterval(this.animation)
-        // this.$router.push({name: 'Map', params: {id: this.athlete.athlete.id}})
+        this.$router.push({name: 'Map', params: {id: this.athlete.athlete.id}})
       }
     }, 1000)
   },
