@@ -4,6 +4,7 @@ import VueCookies from 'vue-cookies'
 
 import Heatme from '@/views/Heatme'
 import Map from '@/views/Map'
+import Loader from '@/views/Loader'
 
 Vue.use(Router)
 Vue.use(VueCookies)
@@ -17,7 +18,7 @@ export default new Router({
       redirect: to => {
         var athleteId = Vue.$cookies.get('athlete')
         if (athleteId) {
-          return `/map/${athleteId}`
+          return `/loader/${athleteId}`
         }
         return '/welcome'
       }
@@ -31,6 +32,11 @@ export default new Router({
       name: 'Map',
       path: '/map/:athleteId',
       component: Map
+    },
+    {
+      name: 'Loader',
+      path: '/loader/:athleteId',
+      component: Loader
     }
   ]
 })

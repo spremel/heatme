@@ -27,14 +27,13 @@ function replyError(errorMessage, statusCode, res) {
 function storeAthlete(data, res) {
 
   const athletes = db.get('athletes')
-
   athletes.update(
     {'athlete.id': data.athlete.id}, {'$set': data}, {upsert: true, w: 1}, function(err, result) {
       if (err) {
         return replyError(`Failed to save token athlete information: ${err}`, 500, res)
       } else {
         res.writeHead(301, {
-          'Location': `${constants.DOMAIN_SERVER}/#/map/${data.athlete.id}`,
+          'Location': `${constants.DOMAIN_SERVER}/#/loader/${data.athlete.id}`,
           'Set-Cookie': `athlete=${data.athlete.id}; Max-Age=604800`
         })
         res.end()
@@ -176,16 +175,36 @@ function sendData(qp, res) {
   })
 }
 
+function athlete(athleteId, res) {
+  console.log(`Loading athlete ${athleteId}`)
+  const athletes = db.get('athletes')
+  athletes.findOne({'athlete.id': athleteId})
+    .then(athlete => {
+      res.writeHead(200)
+      res.write(JSON.stringify(athlete, undefined, 2))
+      res.end()
+    }).catch(function(err) {
+      res.writeHead(404)
+      res.end()
+      console.error(`Could not find athlete ${athleteId}: ${err}`)
+    })
+}
+
 function erase(athleteId, res) {
-  const streams = db.get('streams')
   console.log(`Erasing streams of athlete ${athleteId}`)
-  streams.remove({'athleteId': athleteId})
+  db.get('streams').remove({'athleteId': athleteId})
     .then(function(result) {
       console.log(`Erasing activities of athlete ${athleteId}`)
-      const activities = db.get('activities')
-      activities.remove({'athlete.id': athleteId})
+      db.get('activities').remove({'athlete.id': athleteId})
         .then(function(result) {
           logout(athleteId, res)
+          db.get('athletes').remove({'athlete.id': athleteId})
+            .then(function(response) {
+              console.log(`Successfully removed athlete ${athleteId}`)
+            })
+            .catch(function(err) {
+              console.error(`Failed to remove athlete ${athleteId}: ${err}`) // TODO handle error
+            })
         })
         .catch(function(err) {
           replyError(`Failed to remove activities of athlete ${athleteId}: ${err}`, 500, res)
@@ -200,7 +219,7 @@ function logout(athleteId, res) {
   const athletes = db.get('athletes')
 
   console.log(`Erasing athlete ${athleteId}`)
-  athletes.findOneAndDelete({'athlete.id': athleteId})
+  athletes.findOne({'athlete.id': athleteId})
     .then(athlete => {
       if (!athlete) {
         console.warn(`Could not find athlete ${athleteId}`)
@@ -210,7 +229,7 @@ function logout(athleteId, res) {
         console.log(`Unauthorizing access to Strava for athlete ${athleteId}`)
         axios.post(`${constants.AUTH_SERVER}/oauth/deauthorize?access_token=${athlete.access_token}`)
           .then(function (response) {
-            console.log(`Successfully deleted athlete ${athleteId}`)
+            console.log(`Successfully logged out athlete ${athleteId}`)
           })
           .catch(function (error) {
             console.error(`Failed to deauthorize from server ${constants.AUTH_SERVER}: ${error}`)
@@ -241,6 +260,9 @@ app
       queryParameters = querystring.parse(requestUrl.search.slice(1))
     }
     sendData(queryParameters, res)
+  })
+  .get('/athletes/:id', function(req, res, next) {
+    athlete(parseInt(req.params['id']), res)
   })
   .post('/athletes/:id/logout', function(req, res, next) {
     logout(parseInt(req.params['id']), res)

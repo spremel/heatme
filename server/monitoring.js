@@ -96,69 +96,9 @@ function initializeDatabase() {
     })
 }
 
-function updateAuthorization(athlete, token) {
-  MongoClient.connect(dbConnectionString)
-    .then(function(client) {
-
-      const athletes = client.db(constants.DATABASE_NAME).collection('athletes')
-      athletes.updateOne(
-        {'athlete.id': athlete.athlete.id}, {'$set': token}, {upsert: true, w: 1})
-        .then(function(result) {
-          console.log(`Refreshed token for athlete ${athlete.athlete.id}`)
-        })
-        .catch(function (err) {
-          console.error(`Failed to save token athlete information: ${err}`)
-        })
-        .then(function() {
-          onFetchingAthleteAuthorization.emit('event', athlete, false)
-        })
-    })
-    .catch(function(err) {
-      onFetchingAthleteAuthorization.emit('event', athlete, false)
-      console.error(`Failed to connect to the database: ${err}`)
-    })
-}
-
-function refreshAuthorization(athlete) {
-
-  if (isFetchingAthleteAuthorization(athlete)) {
-    console.debug(`Skipping authorization refresh for athlete ${athlete.athlete.id}`)
-    return
-  }
-
-  remaining = athlete.expires_at - now()
-  if (remaining > 0) {
-    console.warn(`API replied negatively but the access token for athlete is still valid for ${remaining} seconds`)
-  }
-  
-  fs.readFile(path.join(process.env.HOME, '.strava', 'secret'), 'utf8', function(err, data) {
-    if (err) {
-      console.log(`Failed to load client secret: ${err}`)
-    }
-
-    body = {
-      'client_id': constants.CLIENT_ID,
-      'client_secret': data.trim(),
-      'refresh_token': athlete.refresh_token,
-      'grant_type': 'refresh_token',
-    }
-
-    onFetchingAthleteAuthorization.emit('event', athlete, true)
-    axios.post(`${constants.AUTH_SERVER}/oauth/token`, querystring.stringify(body), { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
-      .then(function (response) {
-        console.log(response.data);
-        updateAuthorization(athlete, response.data)
-      })
-      .catch(function (error) {
-        onFetchingAthleteAuthorization.emit('event', athlete, false)
-        console.error(`Failed to refresh authorization for athlete ${athlete.athlete.id}: request to ${constants.AUTH_SERVER} failed: ${error}`)
-      })
-  })
-}
-
 function authorizationHeader(athlete) {
   return {'Authorization': `${athlete.token_type} ${athlete.access_token}`}
-}
+} 
 
 function mergeTimeSeries(d) {
   var trace = []
@@ -176,21 +116,106 @@ function now() {
   return parseInt(Date.now() / 1000)
 }
 
-function updateAthleteTime(athlete, lastActivityAt, upToDate, athletesDb) {
-  update = { }
+function getDate(activity) {
+  return new Date(activity.start_date).getTime() / 1000
+}
 
-  if (lastActivityAt) {
-    update['lastActivityAt'] = lastActivityAt
+async function storeAuthorization(athlete, token, db) {
+  try {
+    await db.collection('athletes').updateOne({'athlete.id': athlete.athlete.id}, {'$set': token}, {upsert: true, w: 1})
+    console.log(`Refreshed token for athlete ${athlete.athlete.id}`)
+  } catch (err) {
+    console.error(`Failed to save token athlete information: ${err}`)
+  }
+}
+
+async function refreshAuthorization(athlete, db) {
+  if (isFetchingAthleteAuthorization(athlete)) {
+    console.debug(`Skipping authorization refresh for athlete ${athlete.athlete.id}`)
+    return
   }
 
-  if (upToDate) {
-    update['updatedAt'] = now()
+  remaining = athlete.expires_at - now()
+  if (remaining > 0) {
+    console.warn(`API replied negatively but the access token for athlete is still valid for ${remaining} seconds`)
   }
 
-  athletesDb.updateOne({'athlete.id': athlete.athlete.id}, {'$set': update})
-    .then((client) => { console.debug(`Updated time fields for athlete ${athlete.athlete.id}`) })
-    .catch((err) => { console.error(`Failed to update time fields for athlete ${athlete.athlete.id}: ${err}`)})
-    .then(() => { onFetchingAthleteActivities.emit('event', athlete, false) })
+  var secret = ''
+  try {
+    secret = fs.readFileSync(path.join(process.env.HOME, '.strava', 'secret'), 'utf8')
+  } catch (err) {
+    console.log(`Failed to load client secret: ${err}`)
+    return
+  }
+
+  body = {
+    'client_id': constants.CLIENT_ID,
+    'client_secret': secret.trim(),
+    'refresh_token': athlete.refresh_token,
+    'grant_type': 'refresh_token',
+  }
+
+  onFetchingAthleteAuthorization.emit('event', athlete, true)
+  try {
+    await axios.post(`${constants.AUTH_SERVER}/oauth/token`, querystring.stringify(body), { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
+    await storeAuthorization(athlete, response.data, db)
+  } catch (error) {
+    console.error(`Failed to refresh authorization for athlete ${athlete.athlete.id}: request to ${constants.AUTH_SERVER} failed: ${error}`)
+  }
+  onFetchingAthleteAuthorization.emit('event', athlete, false)
+}
+
+async function storeAthleteActivities(athlete, activities, db) {
+  try {
+    await db.collection('activities').insertMany(activities.map(a => {
+      var minLat = Infinity, maxLat = 0, minLng = Infinity, maxLng = 0
+      if (a.map.summary_polyline) {
+        var points = polyline.decode(a.map.summary_polyline)
+        for (var p of points) {
+          minLat = Math.min(p[0], minLat)
+          maxLat = Math.max(p[0], maxLat)
+          minLng = Math.min(p[1], minLng)
+          maxLng = Math.max(p[1], maxLng)
+        }
+        a['bounds'] = {
+          'latMin': minLat,
+          'latMax': maxLat,
+          'lngMin': minLng,
+          'lngMax': maxLng
+        }
+      } else {
+        console.debug(`Missing polyline for activities ${a.id} of athlete ${athlete.athlete.id} (${a.type})`)
+      }
+
+      a['startDate'] = new Date(a.start_date);
+
+      return a;
+    }), {'ordered': false})
+  } catch (err) {
+    console.error(`Failed to insert activities of athlete ${athlete.athlete.id}: ${err}`)
+  }
+}
+
+async function storeAthleteMetadata(athlete, newActivities, db) {
+  set = { }
+  if (newActivities.length) {
+    set['lastActivityAt'] = Math.ceil(getDate(newActivities[newActivities.length - 1]))
+  } else {
+    set['updatedAt'] = now()
+  }
+
+  if (!athlete.firstActivityAt) {
+    set['firstActivityAt'] = Math.floor(getDate(newActivities[0]))
+  }
+
+  try {
+    await db.collection('athletes').updateOne(
+      {'athlete.id': athlete.athlete.id}, {'$set': set, '$inc': {'loadedActivities': newActivities.length}}
+    )
+    console.debug(`Updated time fields for athlete ${athlete.athlete.id}`)
+  } catch (err) {
+    console.error(`Failed to update time fields for athlete ${athlete.athlete.id}: ${err}`)
+  }
 }
 
 function updateAthletes() {
@@ -198,15 +223,13 @@ function updateAthletes() {
     .then(function(client) {
 
       const db = client.db(constants.DATABASE_NAME)
-      const athletes = db.collection('athletes')
-      const activities = db.collection('activities')
 
       // find all athletes which have not been updated since 15min and fetches new activities
-      athletes.find({'$or': [
+      db.collection('athletes').find({'$or': [
         {'updatedAt': {'$lt': now() - 15 * 60} },
         {'updatedAt': {'$exists': false} }
       ]}).forEach(
-        function(athlete) {
+        async function(athlete) {
           if (isFetchingAthleteActivities(athlete)) {
             console.debug(`Skipping activities fetch for athlete ${athlete.athlete.id}`)
             return
@@ -214,111 +237,34 @@ function updateAthletes() {
 
           onFetchingAthleteActivities.emit('event', athlete, true)
           var lastActivityAt = athlete.lastActivityAt || 0
-          var sentinel = 20
-
           console.log(`Fetching activities after ${new Date(1000 * lastActivityAt)} for athlete ${athlete.athlete.id}`)
 
-          axios.get(`${constants.STRAVA_SERVER}/api/v3/athlete/activities?after=${lastActivityAt}&per_page=100`, {'headers': authorizationHeader(athlete)})
-            .then(function(response) {
-              console.log(`Found ${response.data.length} new activities for athlete ${athlete.athlete.id}`)
-              
-              lastActivityAt = response.data.length ? Math.ceil(
-                new Date(response.data[response.data.length - 1].start_date).getTime() / 1000
-              ) : 0
-
-              if (!response.data.length) {
-                updateAthleteTime(athlete, lastActivityAt, true, athletes)
-                return
-              }
-              activities.insertMany(response.data.map(a => {
-                var minLat = Infinity, maxLat = 0, minLng = Infinity, maxLng = 0
-                if (a.map.summary_polyline) {
-                  var points = polyline.decode(a.map.summary_polyline)
-                  for (var p of points) {
-                    minLat = Math.min(p[0], minLat)
-                    maxLat = Math.max(p[0], maxLat)
-                    minLng = Math.min(p[1], minLng)
-                    maxLng = Math.max(p[1], maxLng)
-                  }
-                  a['bounds'] = {
-                    'latMin': minLat,
-                    'latMax': maxLat,
-                    'lngMin': minLng,
-                    'lngMax': maxLng
-                  }
-                } else {
-                  console.debug(`Missing polyline for activities ${a.id} of athlete ${athlete.athlete.id} (${a.type})`)
-                }
-
-                a['startDate'] = new Date(a.start_date);
-
-                return a;
-              }))
-                .then((client) => { updateAthleteTime(athlete, lastActivityAt, false, athletes) })
-                .catch((err) => {
-                  console.error(`Failed to insert activities of athlete ${athlete.athlete.id}: ${err}`)
-                  updateAthleteTime(athlete, lastActivityAt, false, athletes)
-                  onFetchingAthleteActivities.emit('event', athlete, false)
-                })
-            })
-            .catch(function(error) {
+          try {
+            response = await axios.get(`${constants.STRAVA_SERVER}/api/v3/athlete/activities?after=${lastActivityAt}&per_page=100`, {'headers': authorizationHeader(athlete)})
+          } catch (error) {
+            console.error(`Failed to GET activities of athlete ${athlete.athlete.id}: ${error}`)
+            if (error.response && error.response.status === 401) {
+              await refreshAuthorization(athlete, db)
               onFetchingAthleteActivities.emit('event', athlete, false)
-              console.error(`Failed to GET activities of athlete ${athlete.athlete.id}: ${error}`)
-              if (error.response && error.response.status === 401) {
-                refreshAuthorization(athlete)
-              }
-            })
+              return
+            }
+          }
+              
+          if (response.data.length) {
+            console.log(`Found ${response.data.length} new activities for athlete ${athlete.athlete.id}`)
+            await storeAthleteActivities(athlete, response.data, db)
+          } else {
+            console.log(`No new activities for athlete ${athlete.athlete.id}`)
+          }
+
+          await storeAthleteMetadata(athlete, response.data, db)
+          onFetchingAthleteActivities.emit('event', athlete, false)
         })
         .catch(function(err) {
           console.error(`Failed to connect to ${dbConnectionString}: ${err}`)
           return
         })
-
-    // fetch streams for all activities without
-    if (false) {
-      activities.find({'hasStream': {'$in': [false, null]}}).limit(2).forEach(
-        function(activity) {
-          athletes.find({'athlete.id': activity.athlete.id}).forEach(
-            function(athlete) {
-              if (isFetchingActivityStreams(athlete, activity)) {
-                console.debug(`Skipping streams fetch for activity ${activity.id} of athlete ${athlete.athlete.id}`)
-                return                
-              }
-              onFetchingActivityStreams.emit('event', athlete, activity, true)
-
-              console.log(`Fetching stream for activity ${activity.id} for athlete ${athlete.athlete.id}`)
-              timeSeries = [
-                'time', 'distance', 'latlng', 'altitude', 'velocity_smooth',
-                'heartrate', 'cadence', 'watts', 'temp', 'moving', 'grade_smooth'
-              ]
-
-              axios.get(`${constants.STRAVA_SERVER}/api/v3/activities/${activity.id}/streams?keys=${timeSeries.join(',')}`, {'headers': authorizationHeader(athlete)})
-                .then(function(response) {
-                  const streams = db.collection('streams')
-                  stream = {'id': activity.id, 'athleteId': athlete.athlete.id, 'trace': mergeTimeSeries(response.data)}
-                  streams.insertOne(stream)
-                    .then(function(err, client) {
-                      activities.updateOne({'id': activity.id}, {'$set': {'hasStream': true}})
-                        .then((client) => { })
-                        .catch((err) => { console.error(`Failed to update hasStream field of activity ${activity.id} of athlete ${athlete.id}: ${err}`) })
-                        .then(() => { onFetchingActivityStreams.emit('event', athlete, activity, false) })
-                    })
-                    .catch((err) => {
-                      onFetchingActivityStreams.emit('event', athlete, activity, false)
-                      console.error(`Failed to insert stream of activity ${activity.id} of athlete ${athlete.id}: ${err}`)
-                    })
-                }).catch(function(error) {
-                  onFetchingActivityStreams.emit('event', athlete, activity, false)
-                  console.error(`Failed to GET stream of activity ${activity.id} of athlete ${activity.athlete.id}: ${error}`)
-
-                  if (error.response && error.response.status === 401) {
-                    refreshAuthorization(athlete)
-                  }
-                })
-            })
-        })
-    }
-  })
+    })
 }
 
 if (require.main === module) {    

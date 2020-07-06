@@ -2,7 +2,7 @@
 <b-container fluid>
   <MapSettings></MapSettings>
   <div id="map">
-    <b-button id="btn-settings" v-b-toggle.sidebar-settings size="sm">
+    <b-button id="button-settings" v-b-toggle.sidebar-settings size="sm">
       <b-icon icon="gear-fill" aria-hidden="true"></b-icon>
     </b-button>
   </div>
@@ -33,7 +33,8 @@ export default {
   name: 'Map',
   data () {
     return {
-      athlete: this.$route.params.athleteId
+      athlete: this.$route.params.athleteId,
+      loading: true
     }
   },
   components: { MapSettings },
@@ -164,7 +165,8 @@ export default {
     padding-right: 20px;
     padding-bottom: 10px;
 }
-#btn-settings {
+
+#button-settings {
     position: absolute;
     top: 95%;
     left: 0%;
@@ -172,4 +174,5 @@ export default {
     transform: translate(0%, -10%);
     margin-left: 10px;
 }
+
 </style>

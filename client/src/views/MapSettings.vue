@@ -95,15 +95,22 @@
           v-on:click="logoutHandler"
           >
           <b-icon
-            icon="power" aria-hidden="true"></b-icon> Logout
+            icon="power" aria-hidden="true"></b-icon>
         </b-button>
         <b-button
           id="erase-data"
           variant="outline-dark"
-          v-on:click="eraseDataHandler"
+          v-b-modal.erase-data-confirm
           >
-          <b-icon icon="trash" aria-hidden="true"></b-icon> Erase my data
+          <b-icon icon="trash" aria-hidden="true"></b-icon>
         </b-button>
+        <!-- The modal -->
+        <b-modal
+          id="erase-data-confirm"
+          @ok="eraseDataHandler"
+          >
+          Erase all my data from the application ?
+        </b-modal>
       </b-button-group>
     </b-form-group>
   </b-sidebar>
@@ -153,7 +160,6 @@ export default {
       this.$root.$emit('heatmap-radius-changed', parseInt(this.radiusValue, 10))
     },
     activityTypeHandler () {
-      console.log(this.selectedTypes)
       this.$root.$emit('filter-type-changed', this.selectedTypes)
     },
     mapSourceHandler () {

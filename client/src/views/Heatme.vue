@@ -1,9 +1,14 @@
 <template>
 <div id="main-div">
-  <!-- <b-img id="logo" src="static/heat-me.png" /> -->
-  <b-img id="screen" src="static/heatmap-screen.png" />
+  <!-- <b-img id="screen" src="static/heatmap-screen.png" /> -->
+  <b-carousel id="screenshots" no-hover-pause>
+    <b-carousel-slide img-src="static/screenshots/out-heatmap-cheltenham-dark.png" />
+    <b-carousel-slide img-src="static/screenshots/out-heatmap-mallorca-terrain.png" />
+    <b-carousel-slide img-src="static/screenshots/out-heatmap-giron-bing.png" />
+    <b-carousel-slide img-src="static/screenshots/out-heatmap-britannia-dark.png" />
+  </b-carousel>
   <b-button
-    id="btn"
+    id="button-connect"
     size="sm"
     variant="dark"
     v-on:click="loginStrava"
@@ -38,7 +43,7 @@ export default {
 
 <style scoped>
   #main-div {
-    background-color: rgb(0,0,0);
+    background-color: black;
     width: 100%;
     height: 100%;
     position: absolute;
@@ -46,23 +51,16 @@ export default {
     left: 50%;
     transform: translate(-50%, -50%);
   }
-  #logo {
+  #button-connect {
     position: absolute;
-    top: 10%;
-    left: 50%;
-    width: 100px;
-    z-index: 1;
-    transform: translate(-50%, -50%);
-  }
-  #btn {
-    position: absolute;
-    top: 15%;
+    top: 95%;
     left: 50%;
     transform: translate(-50%, -50%);
   }
-  #screen {
-    position: absolute;
-    top: 50%;
+  #screenshots {
+    /* position: absolute; */
+    margin-top: 50px;
+    top: 40%;
     left: 50%;
     transform: translate(-50%, -50%);
   }
