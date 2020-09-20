@@ -87,8 +87,52 @@ function issueAuthorizationRequest(code, refresh, res) {
   })
 }
 
-function sendData(qp, res) {
+function processorHeatmap(data, res) {
+  console.log(`Found ${data.length} results`)
+  res.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+  res.write('<gpx version="1.0" creator="custom" xmlns="http://www.topografix.com/GPX/1/0">\n')
 
+  for (var activity of data) {
+    // assert(activity.streams.length === 1)
+    if (activity.streams.length) {
+      for (stream of activity.streams) {
+        for (var point of stream.trace) {
+          res.write(`<wpt lat="${point.latlng[0]}" lon="${point.latlng[1]}"/>\n`)
+        }
+      }
+    } else if (activity.map.summary_polyline) {
+
+      for (var point of polyline.decode(activity.map.summary_polyline)) {
+        res.write(`
+          <wpt lat="${point[0]}" lon="${point[1]}">
+          <name>${activity.id}/${point[0]}/${point[1]}</name>
+          <time>${activity.start_date}</time>
+          </wpt>`
+        )
+      }
+    }
+  }
+
+  res.write('</gpx>')
+  res.end()
+}
+
+function processorListActivities(data, res) {
+  var activities = [];
+  for (var activity of data) {
+    activities.push({
+      'id': activity.id, 
+      'name': activity.name,
+      'date': activity.start_date_local,
+      'type': activity.type,
+    })
+  }
+  //res.write(JSON.stringify(activities, undefined, 2))
+  //res.end()
+  console.log(JSON.stringify(activities, undefined, 2))
+}
+
+function sendData(qp, res) {
   var and = []
 
   if (qp.athletes)
@@ -141,33 +185,8 @@ function sendData(qp, res) {
       '$sort': {'startDate': 1}
     }
   ]).then(function(data) {
-
-    console.log(`Found ${data.length} results`)
-    res.write('<?xml version="1.0" encoding="UTF-8"?>\n')
-    res.write('<gpx version="1.0" creator="custom" xmlns="http://www.topografix.com/GPX/1/0">\n')
-
-    for (var activity of data) {
-      // assert(activity.streams.length === 1)
-      if (activity.streams.length) {
-        for (stream of activity.streams) {
-          for (var point of stream.trace) {
-            res.write(`<wpt lat="${point.latlng[0]}" lon="${point.latlng[1]}"/>\n`)
-          }
-        }
-      } else if (activity.map.summary_polyline) {
-
-        for (var point of polyline.decode(activity.map.summary_polyline)) {
-          res.write(`
-<wpt lat="${point[0]}" lon="${point[1]}">
-  <name>${activity.id}/${point[0]}/${point[1]}</name>
-  <time>${activity.start_date}</time>
-</wpt>`)
-        }
-      }
-    }
-
-    res.write('</gpx>')
-    res.end()
+    processorListActivities(data, res)
+    return processorHeatmap(data, res)
   }).catch(function(err) {
     if (err) {
       return replyError(`Failed to load data: ${err}`, 500, res)
@@ -269,6 +288,11 @@ app
   })
   .delete('/athletes/:id', function(req, res, next) {
     erase(parseInt(req.params['id']), res)
+  })
+  .get('/search', function(req, res, next) {
+    if (requestUrl.search) {
+      queryParameters = querystring.parse(requestUrl.search.slice(1))
+    }
   })
 console.log("Listening on 8080")
 app.listen(8080)
