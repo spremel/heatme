@@ -117,19 +117,9 @@ function processorHeatmap(data, res) {
   res.end()
 }
 
-function processorListActivities(data, res) {
-  var activities = [];
-  for (var activity of data) {
-    activities.push({
-      'id': activity.id, 
-      'name': activity.name,
-      'date': activity.start_date_local,
-      'type': activity.type,
-    })
-  }
-  //res.write(JSON.stringify(activities, undefined, 2))
-  //res.end()
-  console.log(JSON.stringify(activities, undefined, 2))
+function processorRaw(data, res) {
+  res.write(JSON.stringify(data, undefined, 2))
+  res.end()
 }
 
 function sendData(qp, res) {
@@ -185,8 +175,11 @@ function sendData(qp, res) {
       '$sort': {'startDate': 1}
     }
   ]).then(function(data) {
-    processorListActivities(data, res)
-    return processorHeatmap(data, res)
+    if (qp.format == 'heatmap') {
+      return processorHeatmap(data, res)
+    } else {
+      return processorRaw(data, res)
+    }
   }).catch(function(err) {
     if (err) {
       return replyError(`Failed to load data: ${err}`, 500, res)

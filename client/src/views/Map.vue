@@ -56,13 +56,13 @@ export default {
         var latitudes = extent4326.map(e => { return e[1] })
 
         var filters = {
+          'format': 'heatmap',
+          'athletes': [this.athlete].join(','),
           'latmin': Math.min(...latitudes).toFixed(6),
           'latmax': Math.max(...latitudes).toFixed(6),
           'lngmin': Math.min(...longitudes).toFixed(6),
           'lngmax': Math.max(...longitudes).toFixed(6)
         }
-
-        filters.athletes = [this.athlete].join(',')
 
         if (activityTypes.length) {
           filters.types = activityTypes.join(',')
