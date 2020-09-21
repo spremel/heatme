@@ -2,9 +2,26 @@
 <b-container fluid>
   <MapSettings></MapSettings>
   <div id="map">
-    <b-button id="button-settings" v-b-toggle.sidebar-settings size="sm">
-      <b-icon icon="gear-fill" aria-hidden="true"></b-icon>
-    </b-button>
+    <b-button-group id="buttons-settings">
+      <b-button
+        v-b-toggle.sidebar-settings
+        size="sm"
+        v-b-tooltip.hover
+        title="Settings"
+        >
+        <b-icon icon="gear-fill" aria-hidden="true"></b-icon>
+      </b-button>
+      <b-button
+        v-bind:to="toActivities"
+        :replace="true"
+        target="_blank"
+        size="sm"
+        v-b-tooltip.hover
+        title="View selected activities"
+        >
+        <b-icon icon="card-list" aria-hidden="true"></b-icon>
+      </b-button>
+    </b-button-group>
   </div>
 </b-container>
 </template>
@@ -13,8 +30,8 @@
 
 import {ORIGIN_SERVER} from '@/constants.js'
 import MapSettings from '@/views/MapSettings'
+import Activities from '@/views/Activities'
 
-// import GPXWithId from '@/format/format.js'
 const customFormat = require('@/format/format.js')
 
 var ol = require('ol')
@@ -25,64 +42,95 @@ ol.proj = require('ol/proj')
 ol.extent = require('ol/extent')
 ol.loadingstrategy = require('ol/loadingstrategy')
 ol.coordinate = require('ol/coordinate')
+ol.interaction = require('ol/interaction')
 
 const querystring = require('querystring')
 
 export default {
   name: 'Map',
+  components: { MapSettings, Activities },
   data () {
     return {
       athlete: this.$route.params.athleteId,
-      loading: true
+      loading: true,
+      filters: { }
     }
   },
-  components: { MapSettings },
+  computed: {
+    toActivities: function () {
+      var f = this.filters
+      f.format = 'raw'
+      return `/activities/${querystring.stringify(f)}`
+    }
+  },
+  methods: {
+    getFilters: function (activityTypes, dateBefore, dateAfter, extent) {
+      var extent4326 = [
+        ol.proj.transform(ol.extent.getBottomLeft(extent), 'EPSG:3857', 'EPSG:4326'),
+        ol.proj.transform(ol.extent.getTopLeft(extent), 'EPSG:3857', 'EPSG:4326'),
+        ol.proj.transform(ol.extent.getTopRight(extent), 'EPSG:3857', 'EPSG:4326'),
+        ol.proj.transform(ol.extent.getBottomRight(extent), 'EPSG:3857', 'EPSG:4326')
+      ]
+
+      var longitudes = extent4326.map(e => { return e[0] })
+      var latitudes = extent4326.map(e => { return e[1] })
+
+      var filters = {
+        'athletes': [this.athlete].join(',')
+      }
+
+      if (activityTypes.length) {
+        filters.types = activityTypes.join(',')
+      }
+
+      if (dateAfter) {
+        filters.after = ~~(dateAfter.getTime() / 1000)
+      }
+
+      if (dateBefore) {
+        filters.before = ~~(dateBefore.getTime() / 1000)
+      }
+
+      filters.format = 'heatmap'
+
+      filters.latmin = Math.min(...latitudes).toFixed(6)
+      filters.latmax = Math.max(...latitudes).toFixed(6)
+      filters.lngmin = Math.min(...longitudes).toFixed(6)
+      filters.lngmax = Math.max(...longitudes).toFixed(6)
+
+      return filters
+    }
+  },
   mounted () {
+    var self = this
     var activityTypes = []
     var dateAfter = null
     var dateBefore = null
 
+    var drawerSource = new ol.source.Vector()
+    var drawer = new ol.layer.Vector({
+      source: drawerSource
+    })
+
     var vectorSource = new ol.source.Vector({
       strategy: ol.loadingstrategy.bbox,
+
       url: (extent, resolution, projection) => {
-        var extent4326 = [
-          ol.proj.transform(ol.extent.getBottomLeft(extent), 'EPSG:3857', 'EPSG:4326'),
-          ol.proj.transform(ol.extent.getTopLeft(extent), 'EPSG:3857', 'EPSG:4326'),
-          ol.proj.transform(ol.extent.getTopRight(extent), 'EPSG:3857', 'EPSG:4326'),
-          ol.proj.transform(ol.extent.getBottomRight(extent), 'EPSG:3857', 'EPSG:4326')
-        ]
-
-        var longitudes = extent4326.map(e => { return e[0] })
-        var latitudes = extent4326.map(e => { return e[1] })
-
-        var filters = {
-          'format': 'heatmap',
-          'athletes': [this.athlete].join(','),
-          'latmin': Math.min(...latitudes).toFixed(6),
-          'latmax': Math.max(...latitudes).toFixed(6),
-          'lngmin': Math.min(...longitudes).toFixed(6),
-          'lngmax': Math.max(...longitudes).toFixed(6)
-        }
-
-        if (activityTypes.length) {
-          filters.types = activityTypes.join(',')
-        }
-
-        if (dateAfter) {
-          filters.after = ~~(dateAfter.getTime() / 1000)
-        }
-
-        if (dateBefore) {
-          filters.before = ~~(dateBefore.getTime() / 1000)
-        }
-
-        var url = `${ORIGIN_SERVER}/data?${querystring.stringify(filters)}`
-        console.log('Url: ' + url)
-
-        return url
+        var filters = this.getFilters(activityTypes, dateBefore, dateAfter, extent)
+        filters.format = 'heatmap'
+        return `${ORIGIN_SERVER}/data?${querystring.stringify(filters)}`
       },
 
       format: new customFormat.GPXWithId()
+    })
+
+    drawerSource.addEventListener('change', vectorSourceEvent => {
+      var selectedExtent = ol.extent.createEmpty()
+      drawerSource.forEachFeature(feat => {
+        selectedExtent = ol.extent.extend(selectedExtent, feat.getGeometry().getExtent())
+      })
+
+      self.filters = this.getFilters(activityTypes, dateBefore, dateAfter, selectedExtent)
     })
 
     var heatmap = new ol.layer.Heatmap({
@@ -94,7 +142,7 @@ export default {
     })
 
     var map = new ol.Map({
-      layers: [raster, heatmap],
+      layers: [raster, heatmap, drawer],
       target: 'map',
       view: new ol.View({
         center: [239655, 6242334],
@@ -116,6 +164,25 @@ export default {
     this.$root.$on('filter-type-changed', value => { activityTypes = value; vectorSource.refresh() })
     this.$root.$on('filter-date-after-changed', value => { dateAfter = value; vectorSource.refresh() })
     this.$root.$on('filter-date-before-changed', value => { dateBefore = value; vectorSource.refresh() })
+
+    var draw = new ol.interaction.Draw({
+      source: drawerSource,
+      type: 'Circle'
+    })
+    draw.addEventListener('drawstart', drawEvent => {
+      drawerSource.clear()
+    })
+
+    this.$root.$on('select-areas-toggled', value => {
+      if (value) {
+        map.addInteraction(draw)
+      } else {
+        map.removeInteraction(draw)
+      }
+    })
+    this.$root.$on('reset-areas-clicked', () => {
+      drawerSource.clear()
+    })
 
     this.$root.$on('map-source-changed', value => {
       let source = null
@@ -165,7 +232,7 @@ export default {
     padding-bottom: 10px;
 }
 
-#button-settings {
+#buttons-settings {
     position: absolute;
     top: 95%;
     left: 0%;

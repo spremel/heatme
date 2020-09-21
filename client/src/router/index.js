@@ -4,6 +4,7 @@ import VueCookies from 'vue-cookies'
 
 import Heatme from '@/views/Heatme'
 import Map from '@/views/Map'
+import Activities from '@/views/Activities'
 import Loader from '@/views/Loader'
 
 Vue.use(Router)
@@ -37,6 +38,11 @@ export default new Router({
       name: 'Loader',
       path: '/loader/:athleteId',
       component: Loader
+    },
+    {
+      name: 'Activities',
+      path: '/activities/:search',
+      component: Activities
     }
   ]
 })

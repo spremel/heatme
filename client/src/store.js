@@ -9,7 +9,8 @@ Vue.use(Vuex)
 
 export default new Vuex.Store({
   state: {
-    athlete: null
+    athlete: null,
+    activities: []
   },
   mutations: {
     fetchAthlete: (state, athleteId) => {

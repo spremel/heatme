@@ -88,6 +88,25 @@
           v-on:input="dateBeforeHandler"
           />
       </b-form-group>
+      <b-button-group
+        id="areas-selection"
+        label="Before:"
+        label-cols="4"
+        label-align="right">
+        <b-button
+          variant="outline-dark"
+          :pressed.sync="selectAreas"
+          v-on:click="selectAreasHandler"
+          >
+          Selection tool
+        </b-button>
+        <b-button
+          variant="outline-dark"
+          v-on:click="resetAreasHandler"
+          >
+          Reset selection
+        </b-button>
+      </b-button-group>
     </b-form-group>
     <template v-slot:footer="{ hide }">
       <b-button-group id="session">
@@ -151,7 +170,8 @@ export default {
         {value: 'virtualride', text: 'Virtual Ride'}
       ],
 
-      athlete: this.$route.params.athleteId
+      athlete: this.$route.params.athleteId,
+      selectAreas: false
     }
   },
   methods: {
@@ -172,6 +192,12 @@ export default {
     },
     dateBeforeHandler () {
       this.$root.$emit('filter-date-before-changed', this.dateBefore ? new Date(this.dateBefore) : null)
+    },
+    selectAreasHandler () {
+      this.$root.$emit('select-areas-toggled', this.selectAreas)
+    },
+    resetAreasHandler () {
+      this.$root.$emit('reset-areas-clicked')
     },
 
     logoutHandler () {
