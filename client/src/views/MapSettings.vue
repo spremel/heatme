@@ -89,45 +89,6 @@
           v-on:input="dateBeforeHandler"
           />
       </b-form-group>
-      <b-button-group
-        class="mt-4"
-        id="areas-selection"
-        label-cols="4"
-        label-align="right">
-        <b-button
-          size="sm"
-          variant="outline-dark"
-          :pressed.sync="selectAreas"
-          v-on:click="selectAreasHandler"
-          class="mr-1"
-          >
-          <b-icon
-            icon="bounding-box-circles" aria-hidden="true">
-          </b-icon>
-          Selection
-        </b-button>
-        <b-button
-          size="sm"
-          variant="outline-dark"
-          v-on:click="resetAreasHandler"
-          >
-          <b-icon
-            icon="x-circle" aria-hidden="true">
-          </b-icon>
-          Clear selection
-        </b-button>
-      </b-button-group>
-      <b-button
-        v-bind:to="toActivities"
-        target="_blank"
-        class="mt-5"
-        variant="outline-dark"
-        >
-        <b-icon
-          icon="list" aria-hidden="true">
-        </b-icon>
-        View selected activities
-      </b-button>
     </b-form-group>
     <template v-slot:footer="{ hide }">
       <b-form-group
@@ -176,7 +137,6 @@
 <script>
 import {ORIGIN_SERVER} from '@/constants.js'
 import axios from 'axios'
-import querystring from 'querystring'
 
 export default {
   name: 'MapSettings',
@@ -262,14 +222,6 @@ export default {
         .catch(err => {
           console.error(`Failed to erase: ${err}`)
         })
-    }
-  },
-  computed: {
-    toActivities: function () {
-      var f = this.$store.getters.queryFilters
-      f.athletes = [this.athlete].join(',')
-
-      return `/activities/${querystring.stringify(f)}`
     }
   },
   mounted () {
