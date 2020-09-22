@@ -2,31 +2,12 @@
 <b-container fluid>
   <MapSettings></MapSettings>
   <div id="map">
-    <b-button-group id="buttons-settings">
-      <b-button
-        v-b-toggle.sidebar-settings
-        size="sm"
-        v-b-tooltip.hover
-        title="Settings"
-        >
-        <b-icon icon="gear-fill" aria-hidden="true"></b-icon>
-      </b-button>
-      <b-button
-        v-bind:to="toActivities"
-        :replace="true"
-        target="_blank"
-        size="sm"
-        v-b-tooltip.hover
-        title="View selected activities"
-        >
-        <b-icon icon="card-list" aria-hidden="true"></b-icon>
-      </b-button>
-    </b-button-group>
   </div>
 </b-container>
 </template>
 
 <script>
+/* eslint-disable */
 
 import {ORIGIN_SERVER} from '@/constants.js'
 import MapSettings from '@/views/MapSettings'
@@ -43,10 +24,12 @@ ol.extent = require('ol/extent')
 ol.loadingstrategy = require('ol/loadingstrategy')
 ol.coordinate = require('ol/coordinate')
 ol.interaction = require('ol/interaction')
+ol.control = require('ol/control')
 
 const querystring = require('querystring')
 
 export default {
+  
   name: 'Map',
   components: { MapSettings, Activities },
   data () {
@@ -56,56 +39,67 @@ export default {
       filters: { }
     }
   },
-  computed: {
-    toActivities: function () {
-      var f = this.filters
-      f.format = 'raw'
-      return `/activities/${querystring.stringify(f)}`
-    }
-  },
   methods: {
     getFilters: function (activityTypes, dateBefore, dateAfter, extent) {
+      var filters = this.$store.getters.queryFilters
+
       var extent4326 = [
         ol.proj.transform(ol.extent.getBottomLeft(extent), 'EPSG:3857', 'EPSG:4326'),
         ol.proj.transform(ol.extent.getTopLeft(extent), 'EPSG:3857', 'EPSG:4326'),
         ol.proj.transform(ol.extent.getTopRight(extent), 'EPSG:3857', 'EPSG:4326'),
         ol.proj.transform(ol.extent.getBottomRight(extent), 'EPSG:3857', 'EPSG:4326')
       ]
-
+      
       var longitudes = extent4326.map(e => { return e[0] })
       var latitudes = extent4326.map(e => { return e[1] })
-
-      var filters = {
-        'athletes': [this.athlete].join(',')
-      }
-
-      if (activityTypes.length) {
-        filters.types = activityTypes.join(',')
-      }
-
-      if (dateAfter) {
-        filters.after = ~~(dateAfter.getTime() / 1000)
-      }
-
-      if (dateBefore) {
-        filters.before = ~~(dateBefore.getTime() / 1000)
-      }
-
-      filters.format = 'heatmap'
 
       filters.latmin = Math.min(...latitudes).toFixed(6)
       filters.latmax = Math.max(...latitudes).toFixed(6)
       filters.lngmin = Math.min(...longitudes).toFixed(6)
       filters.lngmax = Math.max(...longitudes).toFixed(6)
 
+      filters.athletes = [this.athlete].join(',')
+      filters.format = 'heatmap'
+      
       return filters
     }
   },
   mounted () {
     var self = this
-    var activityTypes = []
-    var dateAfter = null
-    var dateBefore = null
+
+    var ToggleMapSettings = /*@__PURE__*/(function (Control) {
+      function ToggleMapSettings(opt_options) {
+        var options = opt_options || {}
+        
+        var button = document.createElement('button')
+        button.innerHTML = 'S'
+        
+        var element = document.createElement('div')
+        element.className = 'ol-settings ol-attribution ol-unselectable ol-control'
+        element.appendChild(button)
+        
+        Control.call(this, {
+          element: element,
+          target: options.target
+        })
+        
+        button.addEventListener('click', this.handleToggleMapSettings.bind(this), false)
+      }
+      
+      if ( Control ) ToggleMapSettings.__proto__ = Control
+      ToggleMapSettings.prototype = Object.create( Control && Control.prototype )
+      ToggleMapSettings.prototype.constructor = ToggleMapSettings
+
+      ToggleMapSettings.prototype.handleToggleMapSettings = function handleToggleMapSettings () {
+        var sidebar = document.getElementById("sidebar-settings")
+        if (sidebar.style['display'] == 'none') {
+          sidebar.style.display = null
+        } else {
+          sidebar.style.display = 'none'
+        }
+      }
+      return ToggleMapSettings
+    }(ol.control.Control))
 
     var drawerSource = new ol.source.Vector()
     var drawer = new ol.layer.Vector({
@@ -116,9 +110,10 @@ export default {
       strategy: ol.loadingstrategy.bbox,
 
       url: (extent, resolution, projection) => {
-        var filters = this.getFilters(activityTypes, dateBefore, dateAfter, extent)
-        filters.format = 'heatmap'
-        return `${ORIGIN_SERVER}/data?${querystring.stringify(filters)}`
+        var filters = self.$store.getters.filters
+        var search = this.getFilters(filters.types, filters.before, filters.after, extent)
+        search.format = 'heatmap'
+        return `${ORIGIN_SERVER}/data?${querystring.stringify(search)}`
       },
 
       format: new customFormat.GPXWithId()
@@ -130,7 +125,7 @@ export default {
         selectedExtent = ol.extent.extend(selectedExtent, feat.getGeometry().getExtent())
       })
 
-      self.filters = this.getFilters(activityTypes, dateBefore, dateAfter, selectedExtent)
+      this.$store.commit('updateFilters', {'extent': selectedExtent})
     })
 
     var heatmap = new ol.layer.Heatmap({
@@ -142,6 +137,7 @@ export default {
     })
 
     var map = new ol.Map({
+      controls: ol.control.defaults().extend([new ToggleMapSettings()]),
       layers: [raster, heatmap, drawer],
       target: 'map',
       view: new ol.View({
@@ -161,9 +157,7 @@ export default {
 
     this.$root.$on('heatmap-blur-changed', value => { heatmap.setBlur(value) })
     this.$root.$on('heatmap-radius-changed', value => { heatmap.setRadius(value) })
-    this.$root.$on('filter-type-changed', value => { activityTypes = value; vectorSource.refresh() })
-    this.$root.$on('filter-date-after-changed', value => { dateAfter = value; vectorSource.refresh() })
-    this.$root.$on('filter-date-before-changed', value => { dateBefore = value; vectorSource.refresh() })
+    this.$root.$on('filters-changed', value => { vectorSource.refresh() })
 
     var draw = new ol.interaction.Draw({
       source: drawerSource,
@@ -215,14 +209,6 @@ export default {
 </script>
 
 <style scoped>
-.ol-control {
-    position: fixed;
-}
-
-.ol-zoom {
-    left: unset;
-    right: 5em;
-}
 
 #map {
     height: 100%;
@@ -232,19 +218,14 @@ export default {
     padding-bottom: 10px;
 }
 
-#buttons-settings {
-    position: absolute;
-    top: 95%;
-    left: 0%;
-    z-index: 1;
-    transform: translate(0%, -10%);
-    margin-left: 10px;
-}
-
 </style>
 
 <style>
 @import url('ol/ol.css');
+
+.ol-settings {
+    bottom: 40px;
+}
 
 .ol-zoom {
     left: unset;

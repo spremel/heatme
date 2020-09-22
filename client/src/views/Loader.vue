@@ -45,7 +45,7 @@ export default {
     }, 50)
 
     this.loader = setInterval(() => {
-      this.$store.commit('fetchAthlete', this.$route.params.athleteId)
+      this.$store.dispatch('fetchAthlete', this.$route.params.athleteId)
       if (this.athlete && this.athlete.lastActivityAt && this.athlete.firstActivityAt) {
         this.progress = 100 * (this.athlete.lastActivityAt - this.athlete.firstActivityAt) / (new Date() / 1000 - this.athlete.firstActivityAt)
       }

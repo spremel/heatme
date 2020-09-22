@@ -1,6 +1,6 @@
 <template>
 <div>
-  <b-sidebar id="sidebar-settings" title="Settings" shadow>
+  <b-sidebar id="sidebar-settings" title="Settings" no-header shadow>
     <b-form-group
       label="Map"
       label-align="right"
@@ -57,82 +57,118 @@
       label-class="font-weight-bold pt-0"
       class="subsection"
       >
+      <b-form-checkbox-group
+        multiple
+        v-model="selectedTypes"
+        v-on:input="activityTypeHandler"
+        :options="types"
+        />
       <b-form-group
-        >
-        <b-form-checkbox-group
-          multiple
-          v-model="selectedTypes"
-          v-on:input="activityTypeHandler"
-          :options="types"
-          />
-      </b-form-group>
-      <b-form-group
-        label="After:"
+        label="After"
         label-cols="4"
         label-align="right"
+        class="mt-4"
         >
         <b-form-datepicker
+          size="sm"
           :reset-button="true"
           v-model="dateAfter"
           v-on:input="dateAfterHandler"
           />
       </b-form-group>
       <b-form-group
-        label="Before:"
+        label="Before"
         label-cols="4"
         label-align="right"
+        class="mt-4"
         >
         <b-form-datepicker
+          size="sm"
           :reset-button="true"
           v-model="dateBefore"
           v-on:input="dateBeforeHandler"
           />
       </b-form-group>
       <b-button-group
+        class="mt-4"
         id="areas-selection"
-        label="Before:"
         label-cols="4"
         label-align="right">
         <b-button
+          size="sm"
           variant="outline-dark"
           :pressed.sync="selectAreas"
           v-on:click="selectAreasHandler"
+          class="mr-1"
           >
-          Selection tool
+          <b-icon
+            icon="bounding-box-circles" aria-hidden="true">
+          </b-icon>
+          Selection
         </b-button>
         <b-button
+          size="sm"
           variant="outline-dark"
           v-on:click="resetAreasHandler"
           >
-          Reset selection
+          <b-icon
+            icon="x-circle" aria-hidden="true">
+          </b-icon>
+          Clear selection
         </b-button>
       </b-button-group>
+      <b-button
+        v-bind:to="toActivities"
+        target="_blank"
+        class="mt-5"
+        variant="outline-dark"
+        >
+        <b-icon
+          icon="list" aria-hidden="true">
+        </b-icon>
+        View selected activities
+      </b-button>
     </b-form-group>
     <template v-slot:footer="{ hide }">
-      <b-button-group id="session">
-        <b-button
-          id="logout"
-          variant="outline-dark"
-          v-on:click="logoutHandler"
-          >
-          <b-icon
-            icon="power" aria-hidden="true"></b-icon>
-        </b-button>
-        <b-button
-          id="erase-data"
-          variant="outline-dark"
-          v-b-modal.erase-data-confirm
-          >
-          <b-icon icon="trash" aria-hidden="true"></b-icon>
-        </b-button>
-        <!-- The modal -->
-        <b-modal
-          id="erase-data-confirm"
-          @ok="eraseDataHandler"
-          >
-          Erase all my data from the application ?
+      <b-form-group
+        label="Session"
+        label-align="right"
+        label-size="lg"
+        label-class="font-weight-bold pt-0"
+        class="subsection"
+        >
+        
+        <b-button-group id="session">
+          <b-button
+            id="logout"
+            size="sm"
+            variant="outline-dark"
+            v-on:click="logoutHandler"
+            class="mr-1"
+            >
+            <b-icon
+              icon="power" aria-hidden="true">
+            </b-icon>
+            Logout
+          </b-button>
+          <b-button
+            id="erase-data"
+            size="sm"
+            variant="outline-dark"
+            v-b-modal.erase-data-confirm
+            >
+            <b-icon icon="trash" aria-hidden="true"></b-icon>
+            Erase all
+          </b-button>
+          <!-- The modal -->
+          <b-modal
+            id="erase-data-confirm"
+            @ok="eraseDataHandler"
+            >
+            Erase all my data from the application ?
         </b-modal>
       </b-button-group>
+    </b-form-group>
     </template>
   </b-sidebar>
 </div>
@@ -141,6 +177,7 @@
 <script>
 import {ORIGIN_SERVER} from '@/constants.js'
 import axios from 'axios'
+import querystring from 'querystring'
 
 export default {
   name: 'MapSettings',
@@ -181,23 +218,30 @@ export default {
     radiusHandler () {
       this.$root.$emit('heatmap-radius-changed', parseInt(this.radiusValue, 10))
     },
-    activityTypeHandler () {
-      this.$root.$emit('filter-type-changed', this.selectedTypes)
-    },
     mapSourceHandler () {
       this.$root.$emit('map-source-changed', this.selectedMapSource)
     },
-    dateAfterHandler () {
-      this.$root.$emit('filter-date-after-changed', this.dateAfter ? new Date(this.dateAfter) : null)
-    },
-    dateBeforeHandler () {
-      this.$root.$emit('filter-date-before-changed', this.dateBefore ? new Date(this.dateBefore) : null)
-    },
+
     selectAreasHandler () {
       this.$root.$emit('select-areas-toggled', this.selectAreas)
     },
     resetAreasHandler () {
       this.$root.$emit('reset-areas-clicked')
+    },
+
+    activityTypeHandler () {
+      this.$store.commit('updateFilters', {'types': this.selectedTypes})
+      this.$root.$emit('filters-changed')
+    },
+    dateAfterHandler () {
+      var d = this.dateAfter ? new Date(this.dateAfter) : null
+      this.$store.commit('updateFilters', {'after': d})
+      this.$root.$emit('filters-changed')
+    },
+    dateBeforeHandler () {
+      var d = this.dateBefore ? new Date(this.dateBefore) : null
+      this.$store.commit('updateFilters', {'before': d})
+      this.$root.$emit('filters-changed')
     },
 
     logoutHandler () {
@@ -219,6 +263,14 @@ export default {
         .catch(err => {
           console.error(`Failed to erase: ${err}`)
         })
+    }
+  },
+  computed: {
+    toActivities: function () {
+      var f = this.$store.getters.queryFilters
+      f.athletes = [this.athlete].join(',')
+
+      return `/activities/${querystring.stringify(f)}`
     }
   },
   mounted () {
