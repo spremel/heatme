@@ -89,6 +89,7 @@ function issueAuthorizationRequest(code, refresh, res) {
 
 function processorHeatmap(data, res) {
   console.log(`Found ${data.length} results`)
+  res.writeHead(200, {'Content-Type': 'application/xml'})
   res.write('<?xml version="1.0" encoding="UTF-8"?>\n')
   res.write('<gpx version="1.0" creator="custom" xmlns="http://www.topografix.com/GPX/1/0">\n')
 
@@ -118,6 +119,7 @@ function processorHeatmap(data, res) {
 }
 
 function processorRaw(data, res) {
+  res.writeHead(200, {'Content-Type': 'application/json'})
   res.write(JSON.stringify(data, undefined, 2))
   res.end()
 }
@@ -192,7 +194,7 @@ function athlete(athleteId, res) {
   const athletes = db.get('athletes')
   athletes.findOne({'athlete.id': athleteId})
     .then(athlete => {
-      res.writeHead(200)
+      res.writeHead(200, {'Content-Type': 'application/json'})
       res.write(JSON.stringify(athlete, undefined, 2))
       res.end()
     }).catch(function(err) {
