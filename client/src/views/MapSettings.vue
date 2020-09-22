@@ -137,7 +137,6 @@
         label-class="font-weight-bold pt-0"
         class="subsection"
         >
-        
         <b-button-group id="session">
           <b-button
             id="logout"
