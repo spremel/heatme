@@ -24,6 +24,7 @@ ol.loadingstrategy = require('ol/loadingstrategy')
 ol.coordinate = require('ol/coordinate')
 ol.interaction = require('ol/interaction')
 ol.control = require('ol/control')
+ol.style = require('ol/style')
 
 const querystring = require('querystring')
 
@@ -78,9 +79,19 @@ export default {
       filters.format = format
       
       return filters
+    },
+    urlCallback: function(format) {
+      var self = this
+      var callback = function(extent, resolution, projection) {
+        var f = self.$store.getters.filters
+        var search = self.formatFilters(self.athlete, f.types, f.before, f.after, extent, format)
+        return `${ORIGIN_SERVER}/data?${querystring.stringify(search)}`
+      }
+      return callback
     }
   },
   mounted () {
+    
     var self = this
     
     var drawerSource = new ol.source.Vector()
@@ -90,13 +101,7 @@ export default {
     
     var vectorSource = new ol.source.Vector({
       strategy: ol.loadingstrategy.bbox,
-      
-      url: (extent, resolution, projection) => {
-        var f = self.$store.getters.filters
-        var search = self.formatFilters(this.athlete, f.types, f.before, f.after, extent, 'heatmap')
-        return `${ORIGIN_SERVER}/data?${querystring.stringify(search)}`
-      },
-      
+      url: this.urlCallback(),
       format: new customFormat.GPXWithId()
     })
     
@@ -109,6 +114,16 @@ export default {
       this.$store.commit('updateFilters', {'extent': selectedExtent})
     })
     
+    var routes = new ol.layer.Vector({
+      source: vectorSource,
+      style: new ol.style.Style({
+        stroke: new ol.style.Stroke({
+          color: '#f00',
+          width: 3
+        })
+      })
+    })
+
     var heatmap = new ol.layer.Heatmap({
       source: vectorSource
     })
@@ -117,8 +132,8 @@ export default {
       source: new ol.source.OSM()
     })
     
-    var ToggleMapSettings = /*@__PURE__*/(function (Control) {
-      function ToggleMapSettings(opt_options) {
+    var CustomToolbar = /*@__PURE__*/(function (Control) {
+      function CustomToolbar(opt_options) {
         var options = opt_options || {}
         
         var element = document.createElement('div')
@@ -173,11 +188,11 @@ export default {
         buttonListActivities.addEventListener('click', this.handleListActivities.bind(this), false)
       }
       
-      if ( Control ) ToggleMapSettings.__proto__ = Control
-      ToggleMapSettings.prototype = Object.create( Control && Control.prototype )
-      ToggleMapSettings.prototype.constructor = ToggleMapSettings
+      if ( Control ) CustomToolbar.__proto__ = Control
+      CustomToolbar.prototype = Object.create( Control && Control.prototype )
+      CustomToolbar.prototype.constructor = CustomToolbar
       
-      ToggleMapSettings.prototype.handleToggleMapSettings = function handleToggleMapSettings () {
+      CustomToolbar.prototype.handleToggleMapSettings = function handleToggleMapSettings () {
         var sidebar = document.getElementById("sidebar-settings")
         if (sidebar.style['display'] == 'none') {
           sidebar.style.display = null
@@ -194,8 +209,8 @@ export default {
         drawerSource.clear()
       })
       
-      ToggleMapSettings.prototype.hasDrawInteraction = false
-      ToggleMapSettings.prototype.handleToggleSelection = function handleToggleSelection () {
+      CustomToolbar.prototype.hasDrawInteraction = false
+      CustomToolbar.prototype.handleToggleSelection = function handleToggleSelection () {
         var map = this.getMap()
         var button = document.getElementById('ol-button-selection')
         if (this.hasDrawInteraction) {
@@ -209,27 +224,27 @@ export default {
         }
       }
       
-      ToggleMapSettings.prototype.handleClearSelection = function handleClearSelection () {
+      CustomToolbar.prototype.handleClearSelection = function handleClearSelection () {
         drawerSource.clear()
       }
       
-      ToggleMapSettings.prototype.handleListActivities = function handleListActivities () {
+      CustomToolbar.prototype.handleListActivities = function handleListActivities () {
         var f = self.$store.getters.filters
         var s = self.formatFilters(self.athlete, f.types, f.before, f.after, f.extent, 'raw')
         var route = self.$router.resolve({name: 'Activities', params: {search: querystring.stringify(s)}})
         window.open(route.href, '_blank')
       }
 
-      return ToggleMapSettings
+      return CustomToolbar
     }(ol.control.Control))
 
     var map = new ol.Map({
-      controls: ol.control.defaults().extend([new ToggleMapSettings()]),
-      layers: [raster, heatmap, drawer],
+      controls: ol.control.defaults().extend([new CustomToolbar()]),
+      layers: [raster, heatmap, routes, drawer],
       target: 'map',
       view: new ol.View({
         center: [239655, 6242334],
-        zoom: 5
+        zoom: 8
       })
     })
 
@@ -242,9 +257,28 @@ export default {
       )
     }
 
+
+    this.$root.$on('filters-changed', value => { vectorSource.refresh() })
+
     this.$root.$on('heatmap-blur-changed', value => { heatmap.setBlur(value) })
     this.$root.$on('heatmap-radius-changed', value => { heatmap.setRadius(value) })
-    this.$root.$on('filters-changed', value => { vectorSource.refresh() })
+
+    this.$root.$on('layer-changed', layer => {
+      var format = 'gpx-waypoints'
+
+      if (layer == 'heatmap') {
+        format = 'gpx-waypoints'
+        heatmap.setVisible(true)
+        routes.setVisible(false)
+      } else if (layer == 'routes') {
+        format = 'gpx-tracks'
+        heatmap.setVisible(false)
+        routes.setVisible(true)
+      }
+
+      vectorSource.setUrl(this.urlCallback(format))
+      vectorSource.refresh()
+    })
 
     this.$root.$on('map-source-changed', value => {
       let source = null

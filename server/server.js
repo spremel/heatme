@@ -87,7 +87,7 @@ function issueAuthorizationRequest(code, refresh, res) {
   })
 }
 
-function processorHeatmap(data, res) {
+function processorGpxWaypoints(data, res) {
   console.log(`Found ${data.length} results`)
   res.writeHead(200, {'Content-Type': 'application/xml'})
   res.write('<?xml version="1.0" encoding="UTF-8"?>\n')
@@ -111,6 +111,25 @@ function processorHeatmap(data, res) {
           </wpt>`
         )
       }
+    }
+  }
+
+  res.write('</gpx>')
+  res.end()
+}
+
+function processorGpxTracks(data, res) {
+  res.writeHead(200, {'Content-Type': 'application/xml'})
+  res.write('<?xml version="1.0" encoding="UTF-8"?>\n')
+  res.write('<gpx version="1.0" creator="custom" xmlns="http://www.topografix.com/GPX/1/0">\n')
+
+  for (var activity of data) {
+    if (activity.map.summary_polyline) {
+      res.write(`<trk><name>${activity.type}-${activity.start_date}</name><trkseg>\n`)
+      for (var point of polyline.decode(activity.map.summary_polyline)) {
+        res.write(`<trkpt lat="${point[0]}" lon="${point[1]}" />\n`)
+      }
+    res.write(`</trkseg></trk>\n`)
     }
   }
 
@@ -177,8 +196,10 @@ function sendData(qp, res) {
       '$sort': {'startDate': 1}
     }
   ]).then(function(data) {
-    if (qp.format == 'heatmap') {
-      return processorHeatmap(data, res)
+    if (qp.format == 'gpx-waypoints') {
+      return processorGpxWaypoints(data, res)
+    } else if (qp.format == 'gpx-tracks') {
+      return processorGpxTracks(data, res)
     } else {
       return processorRaw(data, res)
     }

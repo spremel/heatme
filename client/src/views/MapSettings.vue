@@ -9,7 +9,30 @@
       class="subsection"
       >
       <b-form-group
-        label="Radius:"
+        label="Style"
+        label-cols="4"
+        label-align="right"
+        >
+        <b-form-select
+          v-model="selectedMapSource"
+          v-on:change="mapSourceHandler"
+          :options="mapSources"
+          />
+      </b-form-group>
+      <b-form-group
+        label="Layer"
+        label-cols="4"
+        label-align="right"
+        >
+        <b-form-select
+          v-model="selectedLayer"
+          v-on:change="layerHandler"
+          :options="layers"
+          />
+      </b-form-group>
+      <b-form-group
+        v-show="isHeatmap"
+        label="Radius"
         label-cols="4"
         label-align="right"
         >
@@ -24,6 +47,7 @@
           />
       </b-form-group>
       <b-form-group
+        v-show="isHeatmap"
         label="Blur:"
         label-cols="4"
         label-align="right"
@@ -36,17 +60,6 @@
           v-model="blurValue"
           v-on:input="blurHandler"
           v-on:change="blurHandler"
-          />
-      </b-form-group>
-      <b-form-group
-        label="Style:"
-        label-cols="4"
-        label-align="right"
-        >
-        <b-form-select
-          v-model="selectedMapSource"
-          v-on:change="mapSourceHandler"
-          :options="mapSources"
           />
       </b-form-group>
     </b-form-group>
@@ -120,7 +133,6 @@
             <b-icon icon="trash" aria-hidden="true"></b-icon>
             Erase all
           </b-button>
-          <!-- The modal -->
           <b-modal
             id="erase-data-confirm"
             @ok="eraseDataHandler"
@@ -154,6 +166,12 @@ export default {
         {value: 'stamen-terrain', text: 'Terrain'}
       ],
 
+      selectedLayer: 'routes',
+      layers: [
+        {value: 'routes', text: 'Routes'},
+        {value: 'heatmap', text: 'Heatmap'}
+      ],
+
       dateAfter: null,
       dateBefore: null,
 
@@ -171,14 +189,18 @@ export default {
     }
   },
   methods: {
+
+    mapSourceHandler () {
+      this.$root.$emit('map-source-changed', this.selectedMapSource)
+    },
+    layerHandler () {
+      this.$root.$emit('layer-changed', this.selectedLayer)
+    },
     blurHandler () {
       this.$root.$emit('heatmap-blur-changed', parseInt(this.blurValue, 10))
     },
     radiusHandler () {
       this.$root.$emit('heatmap-radius-changed', parseInt(this.radiusValue, 10))
-    },
-    mapSourceHandler () {
-      this.$root.$emit('map-source-changed', this.selectedMapSource)
     },
 
     selectAreasHandler () {
@@ -224,12 +246,18 @@ export default {
         })
     }
   },
+  computed: {
+    isHeatmap () {
+      return this.selectedLayer === 'heatmap'
+    }
+  },
   mounted () {
     this.$root.$on('map-mounted', () => {
       this.blurHandler()
       this.radiusHandler()
       this.activityTypeHandler()
       this.mapSourceHandler()
+      this.layerHandler()
     })
   }
 }
