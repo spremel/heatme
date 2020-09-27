@@ -1,3 +1,4 @@
+const MongoClient = require('mongodb').MongoClient;
 const axios = require('axios').default
 const querystring = require('querystring')
 const http = require('http')
@@ -9,11 +10,12 @@ const polyline = require('google-polyline')
 const fs = require('fs')
 const path = require('path')
 const constants = require('./constants.js').constants
-console.log(constants)
 
-const monk = require('monk')
+const dbConnectionString = `mongodb://${constants.DATABASE_ADDRESS}`
 
-const db = monk(`mongodb://${constants.DATABASE_ADDRESS}/${constants.DATABASE_NAME}`)
+function opendb() {
+  return MongoClient.connect(dbConnectionString)
+}
 
 function replyError(errorMessage, statusCode, res) {
   console.error(errorMessage)
@@ -25,20 +27,27 @@ function replyError(errorMessage, statusCode, res) {
 }
 
 function storeAthlete(data, res) {
-
-  const athletes = db.get('athletes')
-  athletes.update(
-    {'athlete.id': data.athlete.id}, {'$set': data}, {upsert: true, w: 1}, function(err, result) {
-      if (err) {
-        return replyError(`Failed to save token athlete information: ${err}`, 500, res)
-      } else {
-        res.writeHead(301, {
-          'Location': `${constants.DOMAIN_SERVER}/#/loader/${data.athlete.id}`,
-          'Set-Cookie': `athlete=${data.athlete.id}; Max-Age=604800`
+  opendb()
+    .then(function(client) {
+      var db = client.db(constants.DATABASE_NAME)
+      db.collection('athletes')
+        .updateOne({'athlete.id': data.athlete.id}, {'$set': data}, {upsert: true, w: 1})
+        .then(function(result) {
+          res.writeHead(301, {
+            'Location': `${constants.DOMAIN_SERVER}/#/loader/${data.athlete.id}`,
+            'Set-Cookie': `athlete=${data.athlete.id}; Max-Age=604800`
+          })
+          res.end()
         })
-        res.end()
-        return true
-      }
+        .catch(function(err) {
+          replyError(`Failed to save token athlete information: ${err}`, 500, res)
+        })
+        .finally(function() {
+          client.close()
+        })
+    })
+    .catch(function(err) {
+      replyError(`Failed to connect to ${dbConnectionString} database: ${err}`, 500, res)
     })
 }
 
@@ -68,6 +77,7 @@ function issueAuthorizationRequest(code, refresh, res) {
     if (err) {
       return replyError('Authorization failed, please contact the server administrator if the issue persists contact', 500, res)
     }
+
     var body = querystring.stringify({
       'client_id': constants.CLIENT_ID,
       'client_secret': data.trim(),
@@ -79,10 +89,9 @@ function issueAuthorizationRequest(code, refresh, res) {
       .then(function (response) {
         console.log(response.data);
         storeAthlete(response.data, res)
-        return true
       })
       .catch(function (error) {
-        return replyError(`Request to ${constants.AUTH_SERVER}/oauth/token failed: ${error}`, 400, res)
+        replyError(`Request to ${constants.AUTH_SERVER}/oauth/token failed: ${error}`, 400, res)
       })
   })
 }
@@ -150,7 +159,7 @@ function sendData(qp, res) {
     and.push({'athlete.id': {'$in': qp.athletes.split(',').map(a => {return parseInt(a)})}})
   if (qp.before)
     and.push({'startDate': {'$lt': new Date(qp.before * 1000)}})
-  else if (qp.after)
+  if (qp.after)
     and.push({'startDate': {'$gt': new Date(qp.after * 1000)}})
   if (qp.types)
     and.push({'type': {
@@ -180,102 +189,145 @@ function sendData(qp, res) {
 
   console.debug(`Querying activities with filter ${JSON.stringify(query, undefined, 2)}`)
 
-  db.get('activities').aggregate([
-    {
-      '$match': query,
-    },
-    {
-      '$lookup': {
-        'from': 'streams',
-        'localField': 'id',
-        'foreignField': 'id',
-        'as': 'streams'
-      }
-    },
-    {
-      '$sort': {'startDate': 1}
-    }
-  ]).then(function(data) {
-    if (qp.format == 'gpx-waypoints') {
-      return processorGpxWaypoints(data, res)
-    } else if (qp.format == 'gpx-tracks') {
-      return processorGpxTracks(data, res)
-    } else {
-      return processorRaw(data, res)
-    }
-  }).catch(function(err) {
-    if (err) {
-      return replyError(`Failed to load data: ${err}`, 500, res)
-    }
-  })
+  opendb()
+    .then(function(client) {
+      var db = client.db(constants.DATABASE_NAME)
+      db.collection('activities').aggregate([
+        {
+          '$match': query,
+        },
+        {
+          '$lookup': {
+            'from': 'streams',
+            'localField': 'id',
+            'foreignField': 'id',
+            'as': 'streams'
+          }
+        },
+        {
+          '$sort': {'startDate': 1}
+        }
+      ]).toArray()
+        .then(function(data) {
+          if (qp.format == 'gpx-waypoints') {
+            processorGpxWaypoints(data, res)
+          } else if (qp.format == 'gpx-tracks') {
+            processorGpxTracks(data, res)
+          } else {
+            processorRaw(data, res)
+          }
+        })
+        .catch(function(err) {
+          replyError(`Failed to get activities matching ${query}: ${err}`, 500, res)
+        })
+        .finally(function() {
+          client.close()
+        })
+    })
+    .catch(function(err) {
+      replyError(`Failed to connect to ${dbConnectionString} database: ${err}`, 500, res)
+    })
 }
 
 function athlete(athleteId, res) {
   console.log(`Loading athlete ${athleteId}`)
-  const athletes = db.get('athletes')
-  athletes.findOne({'athlete.id': athleteId})
-    .then(athlete => {
-      res.writeHead(200, {'Content-Type': 'application/json'})
-      res.write(JSON.stringify(athlete, undefined, 2))
-      res.end()
-    }).catch(function(err) {
-      res.writeHead(404)
-      res.end()
-      console.error(`Could not find athlete ${athleteId}: ${err}`)
+  opendb()
+    .then(function(client) {
+      var db = client.db(constants.DATABASE_NAME)
+      db.collection('athletes')
+        .find({'athlete.id': athleteId})
+        .limit(1)
+        .next()
+        .then(function(athlete) {
+          if (athlete) {
+            res.writeHead(200, {'Content-Type': 'application/json'})
+            res.write(JSON.stringify(athlete, undefined, 2))
+            res.end()
+          } else {
+            res.writeHead(404)
+            res.end()
+          }
+        })
+        .catch(function(err) {
+          replyError(`Failed to find athlete ${athleteId}: ${err}`, 500, res)
+        })
+        .finally(function() {
+          client.close()
+        })
+    })
+    .catch(function(err) {
+      return replyError(`Failed to connect to ${dbConnectionString} database: ${err}`, 500, res)
     })
 }
 
 function erase(athleteId, res) {
   console.log(`Erasing streams of athlete ${athleteId}`)
-  db.get('streams').remove({'athleteId': athleteId})
-    .then(function(result) {
-      console.log(`Erasing activities of athlete ${athleteId}`)
-      db.get('activities').remove({'athlete.id': athleteId})
+  // TODO client.close()
+  opendb()
+    .then(function(client) {
+      var db = client.db(constants.DATABASE_NAME)
+      db.collection('streams').deleteMany({'athleteId': athleteId})
         .then(function(result) {
-          logout(athleteId, res)
-          db.get('athletes').remove({'athlete.id': athleteId})
-            .then(function(response) {
-              console.log(`Successfully removed athlete ${athleteId}`)
+          console.log(`Erasing activities of athlete ${athleteId}`)
+          db.collection('activities').deleteMany({'athlete.id': athleteId})
+            .then(function(result) {
+              logout(athleteId, res)
+              db.collection('athletes').deleteOne({'athlete.id': athleteId})
+                .then(function(response) {
+                  console.log(`Successfully removed athlete ${athleteId}`)
+                })
+                .catch(function(err) {
+                  console.error(`Failed to remove athlete ${athleteId}: ${err}`) // TODO handle error
+                })
             })
             .catch(function(err) {
-              console.error(`Failed to remove athlete ${athleteId}: ${err}`) // TODO handle error
+              replyError(`Failed to remove activities of athlete ${athleteId}: ${err}`, 500, res)
             })
         })
         .catch(function(err) {
-          replyError(`Failed to remove activities of athlete ${athleteId}: ${err}`, 500, res)
+          replyError(`Failed to remove streams of athlete ${athleteId}: ${err}`, 500, res)
         })
     })
     .catch(function(err) {
-      replyError(`Failed to remove streams of athlete ${athleteId}: ${err}`, 500, res)
+      return replyError(`Failed to connect to ${dbConnectionString} database: ${err}`, 500, res)
     })
 }
 
 function logout(athleteId, res) {
-  const athletes = db.get('athletes')
-
   console.log(`Erasing athlete ${athleteId}`)
-  athletes.findOne({'athlete.id': athleteId})
-    .then(athlete => {
-      if (!athlete) {
-        console.warn(`Could not find athlete ${athleteId}`)
-        res.writeHead(200)
-        res.end()
-      } else {
-        console.log(`Unauthorizing access to Strava for athlete ${athleteId}`)
-        axios.post(`${constants.AUTH_SERVER}/oauth/deauthorize?access_token=${athlete.access_token}`)
-          .then(function (response) {
-            console.log(`Successfully logged out athlete ${athleteId}`)
-          })
-          .catch(function (error) {
-            console.error(`Failed to deauthorize from server ${constants.AUTH_SERVER}: ${error}`)
-          })
-          .then(function() {
+  opendb()
+    .then(function(client) {
+      var db = client.db(constants.DATABASE_NAME)
+      db.collection('athletes')
+        .find({'athlete.id': athleteId})
+        .limit(1)
+        .next()
+        .then(function(athlete) {
+          if (athlete) {
+            console.log(`Unauthorizing access to Strava for athlete ${athleteId}`)
+            axios.post(`${constants.AUTH_SERVER}/oauth/deauthorize?access_token=${athlete.access_token}`)
+              .then(function (response) {
+                console.log(`Successfully logged out athlete ${athleteId}`)
+              })
+              .catch(function (error) {
+                console.error(`Failed to deauthorize from server ${constants.AUTH_SERVER}: ${error}`)
+              })
+              .finally(function() {
+                res.writeHead(200)
+                res.end()
+              })
+          } else {
+            console.warn(`Could not find athlete ${athleteId}`)
             res.writeHead(200)
             res.end()
-          })
-      }
-    }).catch(function(err) {
-      console.error(`Could not find athlete ${athleteId}: ${err}`)
+          }
+        })
+        .catch(function(err) {
+          return replyError(`Failed to find athlete ${athleteId}: ${err}`, 500, res)
+        })
+    })
+    .catch(function(err) {
+      return replyError(`Failed to connect to ${dbConnectionString} database: ${err}`, 500, res)
     })
 }
 
@@ -291,6 +343,7 @@ app
   })
   .get('/data', function(req, res, next) {
     var requestUrl = url.parse(req.url)
+    var queryParameters = {}
     if (requestUrl.search) {
       queryParameters = querystring.parse(requestUrl.search.slice(1))
     }
@@ -304,11 +357,6 @@ app
   })
   .delete('/athletes/:id', function(req, res, next) {
     erase(parseInt(req.params['id']), res)
-  })
-  .get('/search', function(req, res, next) {
-    if (requestUrl.search) {
-      queryParameters = querystring.parse(requestUrl.search.slice(1))
-    }
   })
 console.log("Listening on 8080")
 app.listen(8080)
