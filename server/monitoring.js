@@ -168,7 +168,7 @@ async function refreshAuthorization(athlete, db) {
 async function storeAthleteActivities(athlete, activities, db) {
   try {
     await db.collection('activities').insertMany(activities.map(a => {
-      var minLat = Infinity, maxLat = 0, minLng = Infinity, maxLng = 0
+      var minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity
       if (a.map.summary_polyline) {
         var points = polyline.decode(a.map.summary_polyline)
         for (var p of points) {
