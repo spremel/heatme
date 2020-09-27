@@ -85,7 +85,7 @@ export default {
       var callback = function(extent, resolution, projection) {
         var f = self.$store.getters.filters
         var search = self.formatFilters(self.athlete, f.types, f.before, f.after, extent, format)
-        return `${ORIGIN_SERVER}/data?${querystring.stringify(search)}`
+        return `${ORIGIN_SERVER}/api/data?${querystring.stringify(search)}`
       }
       return callback
     }

@@ -226,7 +226,7 @@ export default {
     },
 
     logoutHandler () {
-      axios.post(`${ORIGIN_SERVER}/athletes/${this.athlete}/logout`)
+      axios.post(`${ORIGIN_SERVER}/api/athletes/${this.athlete}/logout`)
         .then(res => {
           this.$cookies.remove('athlete')
           this.$router.push({name: 'Welcome'})
@@ -236,7 +236,7 @@ export default {
         })
     },
     eraseDataHandler () {
-      axios.delete(`${ORIGIN_SERVER}/athletes/${this.athlete}`)
+      axios.delete(`${ORIGIN_SERVER}/api/athletes/${this.athlete}`)
         .then(res => {
           this.$cookies.remove('athlete')
           this.$router.push({name: 'Welcome'})

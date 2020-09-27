@@ -15,7 +15,7 @@ export default new Vuex.Store({
   },
   actions: {
     fetchAthlete ({ commit }, athleteId) {
-      axios.get(`${ORIGIN_SERVER}/athletes/${athleteId}`)
+      axios.get(`${ORIGIN_SERVER}/api/athletes/${athleteId}`)
         .then(res => {
           commit('setAthlete', res.data)
         })
