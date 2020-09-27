@@ -335,13 +335,13 @@ var app = express()
 app.use(cors())
 
 app
-  .get('/token_exchange', function(req, res, next) {
+  .get('/api/token_exchange', function(req, res, next) {
     var requestUrl = url.parse(req.url)
     code = validateAuthorizationCode(requestUrl, res)
     if (code)
       issueAuthorizationRequest(code, false, res)
   })
-  .get('/data', function(req, res, next) {
+  .get('/api/data', function(req, res, next) {
     var requestUrl = url.parse(req.url)
     var queryParameters = {}
     if (requestUrl.search) {
@@ -349,13 +349,13 @@ app
     }
     sendData(queryParameters, res)
   })
-  .get('/athletes/:id', function(req, res, next) {
+  .get('/api/athletes/:id', function(req, res, next) {
     athlete(parseInt(req.params['id']), res)
   })
-  .post('/athletes/:id/logout', function(req, res, next) {
+  .post('/api/athletes/:id/logout', function(req, res, next) {
     logout(parseInt(req.params['id']), res)
   })
-  .delete('/athletes/:id', function(req, res, next) {
+  .delete('/api/athletes/:id', function(req, res, next) {
     erase(parseInt(req.params['id']), res)
   })
 console.log("Listening on 8080")
