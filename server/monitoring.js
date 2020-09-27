@@ -117,7 +117,7 @@ async function refreshAuthorization(athlete, db) {
     'client_id': constants.CLIENT_ID,
     'client_secret': secret.trim(),
     'refresh_token': athlete.refresh_token,
-    'grapnt_type': 'refresh_token',
+    'grant_type': 'refresh_token',
   }
 
   try {
