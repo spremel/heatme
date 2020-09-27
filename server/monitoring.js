@@ -7,17 +7,23 @@ const querystring = require('querystring')
 const constants = require('./constants.js').constants
 const Event = require('events')
 
-const dbConnectionString = `mongodb://${constants.DATABASE_ADDRESS}/`
+const dbConnectionString = `mongodb://${constants.DATABASE_ADDRESS}`
 
 var context = {athletes: {}}
 
 class OnFetchingAthleteActivities extends Event {}
-class OnFetchingAthleteAuthorization extends Event {}
-class OnFetchingActivityStreams extends Event {}
 
 const onFetchingAthleteActivities = new OnFetchingAthleteActivities()
-const onFetchingAthleteAuthorization = new OnFetchingAthleteAuthorization()
-const onFetchingActivityStreams = new OnFetchingActivityStreams()
+
+function getAthleteContext(athlete) {
+  if (!context.athletes[athlete.athlete.id]) {
+    context.athletes[athlete.athlete.id] = {
+      fetchingActivities: false
+    }
+  }
+
+  return context.athletes[athlete.athlete.id]
+}
 
 onFetchingAthleteActivities.on('event', (athlete, state) => {
   console.debug(`OnFetchingAthleteActivities emitted with ${athlete.athlete.id}, ${state}`)
@@ -25,44 +31,8 @@ onFetchingAthleteActivities.on('event', (athlete, state) => {
 })
 onFetchingAthleteActivities.on('error', (err) => { console.error(`OnFetchingActivities error: ${err}`) } )
 
-onFetchingAthleteAuthorization.on('event', (athlete, state) => {
-  console.debug(`OnFetchingAthleteAuthorization emmited with ${athlete.athlete.id}, ${state}`)
-  getAthleteContext(athlete).fetchingAuthorization = state
-})
-onFetchingAthleteAuthorization.on('error', (err) => { console.error(`OnFetchingAthleteAuthorization error: ${err}`) } )
-
-onFetchingActivityStreams.on('event', (athlete, activity, state) => {
-  console.debug(`OnFetchingActivityStreams emmited with ${athlete.athlete.id}, ${activity.id}, ${state}`)
-  getActivityContext(athlete, activity).fetchingStreams = state
-})
-onFetchingActivityStreams.on('error', (err) => { console.error(`OnFetchingActivityStreams error: ${err}`) } )
-
-function getAthleteContext(athlete) {
-  if (!context.athletes[athlete.athlete.id]) {
-    context.athletes[athlete.athlete.id] = {
-      activities: { },
-      fetchingActivities: false,
-      fetchingAuthorization: false
-    }
-  }
-
-  return context.athletes[athlete.athlete.id]
-}
-
-function getActivityContext(athlete, activity) {
-  var c = getAthleteContext(athlete)
-  if (!c.activities[activity.id]) {
-    c.activities[activity.id] = {
-      fetchingStreams: false
-    }
-  }
-
-  return c.activities[activity.id]
-}
 
 function isFetchingAthleteActivities(athlete) { return getAthleteContext(athlete).fetchingActivities }
-function isFetchingAthleteAuthorization(athlete) { return getAthleteContext(athlete).fetchingAuthorization }
-function isFetchingActivityStreams(athlete) { return getActivityContext(athlete, activity).fetchingStreams }
 
 function initializeDatabase() {
   MongoClient.connect(dbConnectionString)
@@ -130,11 +100,6 @@ async function storeAuthorization(athlete, token, db) {
 }
 
 async function refreshAuthorization(athlete, db) {
-  if (isFetchingAthleteAuthorization(athlete)) {
-    console.debug(`Skipping authorization refresh for athlete ${athlete.athlete.id}`)
-    return
-  }
-
   remaining = athlete.expires_at - now()
   if (remaining > 0) {
     console.warn(`API replied negatively but the access token for athlete is still valid for ${remaining} seconds`)
@@ -152,17 +117,15 @@ async function refreshAuthorization(athlete, db) {
     'client_id': constants.CLIENT_ID,
     'client_secret': secret.trim(),
     'refresh_token': athlete.refresh_token,
-    'grant_type': 'refresh_token',
+    'grapnt_type': 'refresh_token',
   }
 
-  onFetchingAthleteAuthorization.emit('event', athlete, true)
   try {
     response = await axios.post(`${constants.AUTH_SERVER}/oauth/token`, querystring.stringify(body), { 'headers': {'Content-Type': 'application/x-www-form-urlencoded'} })
     await storeAuthorization(athlete, response.data, db)
   } catch (error) {
     console.error(`Failed to refresh authorization for athlete ${athlete.athlete.id}: request to ${constants.AUTH_SERVER} failed: ${error}`)
   }
-  onFetchingAthleteAuthorization.emit('event', athlete, false)
 }
 
 async function storeAthleteActivities(athlete, activities, db) {
@@ -218,52 +181,71 @@ async function storeAthleteMetadata(athlete, newActivities, db) {
   }
 }
 
+async function updateAthlete(athlete) {
+  var client = null
+  try {
+    client = await MongoClient.connect(dbConnectionString)
+    const db = client.db(constants.DATABASE_NAME)
+
+    if (isFetchingAthleteActivities(athlete)) {
+      console.debug(`Skipping activities fetch for athlete ${athlete.athlete.id}`)
+      return
+    }
+
+    onFetchingAthleteActivities.emit('event', athlete, true)
+    var lastActivityAt = athlete.lastActivityAt || 0
+    console.log(`Fetching activities after ${new Date(1000 * lastActivityAt)} for athlete ${athlete.athlete.id}`)
+
+    try {
+      response = await axios.get(`${constants.STRAVA_SERVER}/api/v3/athlete/activities?after=${lastActivityAt}&per_page=100`, {'headers': authorizationHeader(athlete)})
+    } catch (error) {
+      console.error(`Failed to GET activities of athlete ${athlete.athlete.id}: ${error}`)
+      if (error.response && error.response.status === 401) {
+        await refreshAuthorization(athlete, db)
+        return
+      }
+    }
+    
+    if (response.data.length) {
+      console.log(`Found ${response.data.length} new activities for athlete ${athlete.athlete.id}`)
+      await storeAthleteActivities(athlete, response.data, db)
+    } else {
+      console.log(`No new activities for athlete ${athlete.athlete.id}`)
+    }
+
+    await storeAthleteMetadata(athlete, response.data, db)
+  }
+  catch (err) {
+    console.error(`Failed to update athlete ${athlete.athlete.id}: ${err}`)
+  }
+  finally {
+    onFetchingAthleteActivities.emit('event', athlete, false)
+    if (client) {
+      client.close()
+    }
+  }
+}
+
 function updateAthletes() {
   MongoClient.connect(dbConnectionString)
     .then(function(client) {
-
-      const db = client.db(constants.DATABASE_NAME)
-
       // find all athletes which have not been updated since 15min and fetches new activities
-      db.collection('athletes').find({'$or': [
+      client.db(constants.DATABASE_NAME).collection('athletes').find({'$or': [
         {'updatedAt': {'$lt': now() - 15 * 60} },
         {'updatedAt': {'$exists': false} }
       ]}).forEach(
-        async function(athlete) {
-          if (isFetchingAthleteActivities(athlete)) {
-            console.debug(`Skipping activities fetch for athlete ${athlete.athlete.id}`)
-            return
+        function(athlete) {
+          updateAthlete(athlete)
+        },
+        function(err) {
+          if (err) {
+            console.error(`Error occured while fetching athlete ${athlete.athlete.id}: ${err}`)
           }
-
-          onFetchingAthleteActivities.emit('event', athlete, true)
-          var lastActivityAt = athlete.lastActivityAt || 0
-          console.log(`Fetching activities after ${new Date(1000 * lastActivityAt)} for athlete ${athlete.athlete.id}`)
-
-          try {
-            response = await axios.get(`${constants.STRAVA_SERVER}/api/v3/athlete/activities?after=${lastActivityAt}&per_page=100`, {'headers': authorizationHeader(athlete)})
-          } catch (error) {
-            console.error(`Failed to GET activities of athlete ${athlete.athlete.id}: ${error}`)
-            if (error.response && error.response.status === 401) {
-              await refreshAuthorization(athlete, db)
-              onFetchingAthleteActivities.emit('event', athlete, false)
-              return
-            }
-          }
-              
-          if (response.data.length) {
-            console.log(`Found ${response.data.length} new activities for athlete ${athlete.athlete.id}`)
-            await storeAthleteActivities(athlete, response.data, db)
-          } else {
-            console.log(`No new activities for athlete ${athlete.athlete.id}`)
-          }
-
-          await storeAthleteMetadata(athlete, response.data, db)
-          onFetchingAthleteActivities.emit('event', athlete, false)
+          client.close()
         })
-        .catch(function(err) {
-          console.error(`Failed to connect to ${dbConnectionString}: ${err}`)
-          return
-        })
+    })
+    .catch(function(err) {
+      console.error(`Failed to connect to database ${dbConnectionString}: ${err}`)
     })
 }
 
